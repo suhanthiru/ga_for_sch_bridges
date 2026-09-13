@@ -110,6 +110,10 @@ class CtlPD:
            axes=dict(role="bridge_drift", reference="ou", coupling="param", marginal="hard_two", representation="neural_drift", family="dynamic_sb"),
            test=T + "test_controllers")
 class CtlBridgeDrift:
+    """Neural (DSBM iteration-0) bridge drift. The pilot pruned per-mutant neural solving
+    from rungs 0-1 (PLAN_CHANGES 2026-09-13): the nets come from the per-cell cache
+    trained once at BRIDGE_CFG for the chosen reference; the solver flags among the
+    parameters are honoured at rung 2 only."""
     def build(self, params, ctx):
         from sb.gen.bridges import get_bridges
         from sb.gen.controllers import bridge_act

@@ -1,0 +1,304 @@
+{
+ "The_Tower|NVIDIA GeForce RTX 3080 Ti": {
+  "machine": {
+   "host": "The_Tower",
+   "os": "Windows-10-10.0.26200-SP0",
+   "python": "3.11.9",
+   "torch": "2.11.0+cu128",
+   "cuda": "12.8",
+   "cudnn": 91900,
+   "cpu_count": 16,
+   "time": "2026-09-13 15:03:35",
+   "git": "137665a",
+   "gpu": "NVIDIA GeForce RTX 3080 Ti",
+   "gpu_mem_total_mb": 12287,
+   "gpu_mem_free_at_start_mb": 10844,
+   "triton": null,
+   "gpu_util_at_start": 39,
+   "gpu_mem_used_at_start_mb": 1469,
+   "gpu_compute_apps_at_start": 33,
+   "shared_gpu": true
+  },
+  "runs": {
+   "gate_precision": {
+    "fp64": {
+     "dtype": "fp64",
+     "max_abs_err": 3.518965611968086e-07,
+     "tol": 0.001,
+     "passes": true,
+     "measured": "2026-09-13 15:02:57",
+     "git": "137665a"
+    },
+    "fp32": {
+     "dtype": "fp32",
+     "max_abs_err": 6.504198130641292e-07,
+     "tol": 0.001,
+     "passes": true,
+     "measured": "2026-09-13 15:03:09",
+     "git": "137665a"
+    },
+    "bf16": {
+     "dtype": "bf16",
+     "max_abs_err": 0.03512045478978856,
+     "tol": 0.001,
+     "passes": false,
+     "measured": "2026-09-13 15:03:22",
+     "git": "137665a"
+    },
+    "fp16": {
+     "dtype": "fp16",
+     "max_abs_err": 0.007134983425069186,
+     "tol": 0.001,
+     "passes": false,
+     "measured": "2026-09-13 15:03:35",
+     "git": "137665a"
+    }
+   },
+   "env_step": {
+    "eager_n4096": {
+     "n": 4096,
+     "steps": 30,
+     "s_per_episode": 0.42664820002391934,
+     "us_per_step": 14221.606667463977,
+     "steps_per_s": 288012.4655233772,
+     "peak_mb": 9,
+     "repeat_bit_equal": true,
+     "alive_frac": 0.97314453125,
+     "measured": "2026-09-13 14:42:56",
+     "git": "ed00bc3"
+    },
+    "cudagraph_n4096": {
+     "n": 4096,
+     "steps": 30,
+     "s_per_episode": 0.07912770000984892,
+     "us_per_step": 2637.5900003282973,
+     "steps_per_s": 1552932.7907256915,
+     "peak_mb": 90,
+     "repeat_bit_equal": true,
+     "alive_frac": 0.980712890625,
+     "measured": "2026-09-13 14:42:57",
+     "git": "ed00bc3"
+    }
+   },
+   "sinkhorn_grid": {
+    "float32_P256": {
+     "P": 256,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "float32",
+     "s_per_batch": 0.05591719999210909,
+     "bridges_per_s": 4578.197764482595,
+     "peak_mb": 60,
+     "marginal_l1_err_max": 2.142256562365219e-06,
+     "kb_per_bridge": 240.0,
+     "measured": "2026-09-13 14:42:07",
+     "git": "64cb868"
+    },
+    "bfloat16_P256": {
+     "P": 256,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "bfloat16",
+     "s_per_batch": 0.05996919999597594,
+     "bridges_per_s": 4268.858014066856,
+     "peak_mb": 54,
+     "marginal_l1_err_max": 0.0009765625,
+     "kb_per_bridge": 216.0,
+     "measured": "2026-09-13 14:42:08",
+     "git": "64cb868"
+    },
+    "float32_P1024": {
+     "P": 1024,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "float32",
+     "s_per_batch": 0.11397649999707937,
+     "bridges_per_s": 8984.308169019401,
+     "peak_mb": 144,
+     "marginal_l1_err_max": 1.3077030871500028e-06,
+     "kb_per_bridge": 144.0,
+     "measured": "2026-09-13 14:42:09",
+     "git": "64cb868"
+    },
+    "bfloat16_P1024": {
+     "P": 1024,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "bfloat16",
+     "s_per_batch": 0.05399729998316616,
+     "bridges_per_s": 18963.911164432953,
+     "peak_mb": 120,
+     "marginal_l1_err_max": 0.001068115234375,
+     "kb_per_bridge": 120.0,
+     "measured": "2026-09-13 14:42:09",
+     "git": "64cb868"
+    },
+    "float32_P4096": {
+     "P": 4096,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "float32",
+     "s_per_batch": 0.4223490000003949,
+     "bridges_per_s": 9698.140637236433,
+     "peak_mb": 480,
+     "marginal_l1_err_max": 0.0006995050935074687,
+     "kb_per_bridge": 120.0,
+     "measured": "2026-09-13 14:42:13",
+     "git": "64cb868"
+    },
+    "bfloat16_P4096": {
+     "P": 4096,
+     "grid": 64,
+     "iters": 200,
+     "dtype": "bfloat16",
+     "s_per_batch": 0.16256050002994016,
+     "bridges_per_s": 25196.772889143456,
+     "peak_mb": 384,
+     "marginal_l1_err_max": 0.00102996826171875,
+     "kb_per_bridge": 96.0,
+     "measured": "2026-09-13 14:42:15",
+     "git": "64cb868"
+    }
+   },
+   "bridge_fit": {
+    "single_cuda": {
+     "P": 1,
+     "ms_per_step": 14.080724999075755,
+     "bridge_steps_per_s": 71.01907040053968,
+     "bridges_per_s_at_cfg": 0.05918255866711639,
+     "device": "cuda",
+     "measured": "2026-09-13 14:42:20",
+     "git": "ed00bc3"
+    },
+    "P32_fp32": {
+     "P": 32,
+     "autocast": false,
+     "ms_per_pop_step": 25.32503499824088,
+     "bridge_steps_per_s": 1263.5717977180593,
+     "bridges_per_s_at_cfg": 1.052976498098383,
+     "peak_mb": 788,
+     "measured": "2026-09-13 14:42:23",
+     "git": "ed00bc3"
+    },
+    "P32_bf16": {
+     "P": 32,
+     "autocast": true,
+     "ms_per_pop_step": 26.326140001765452,
+     "bridge_steps_per_s": 1215.5219108404822,
+     "bridges_per_s_at_cfg": 1.012934925700402,
+     "peak_mb": 537,
+     "measured": "2026-09-13 14:42:25",
+     "git": "ed00bc3"
+    },
+    "P128_fp32": {
+     "P": 128,
+     "autocast": false,
+     "ms_per_pop_step": 73.30666999914683,
+     "bridge_steps_per_s": 1746.0894077099626,
+     "bridges_per_s_at_cfg": 1.455074506424969,
+     "peak_mb": 2953,
+     "measured": "2026-09-13 14:42:32",
+     "git": "ed00bc3"
+    },
+    "P128_bf16": {
+     "P": 128,
+     "autocast": true,
+     "ms_per_pop_step": 69.33196000172757,
+     "bridge_steps_per_s": 1846.1904148795245,
+     "bridges_per_s_at_cfg": 1.5384920123996035,
+     "peak_mb": 1948,
+     "measured": "2026-09-13 14:42:37",
+     "git": "ed00bc3"
+    },
+    "P256_fp32": {
+     "P": 256,
+     "autocast": false,
+     "ms_per_pop_step": 140.52348999830429,
+     "bridge_steps_per_s": 1821.7594795225282,
+     "bridges_per_s_at_cfg": 1.5181328996021068,
+     "peak_mb": 5842,
+     "measured": "2026-09-13 14:42:50",
+     "git": "ed00bc3"
+    },
+    "P256_bf16": {
+     "P": 256,
+     "autocast": true,
+     "ms_per_pop_step": 132.8579000022728,
+     "bridge_steps_per_s": 1926.8707393058344,
+     "bridges_per_s_at_cfg": 1.6057256160881952,
+     "peak_mb": 3831,
+     "measured": "2026-09-13 14:43:01",
+     "git": "ed00bc3"
+    }
+   },
+   "diffusion_train": {
+    "single_b1024": {
+     "batch": 1024,
+     "ms_per_step": 4.290014999860432,
+     "s_per_8000_steps": 34.320119998883456,
+     "peak_mb": 79,
+     "measured": "2026-09-13 14:43:10",
+     "git": "ed00bc3"
+    }
+   },
+   "diffusion_sample": {
+    "ddim10_n512": {
+     "n": 512,
+     "ms_per_chunk": 10.22460000240244,
+     "env_steps_per_s_policy_in_loop": 200301.23423104946,
+     "peak_mb": 68,
+     "measured": "2026-09-13 14:43:10",
+     "git": "ed00bc3"
+    },
+    "ddim10_n4096": {
+     "n": 4096,
+     "ms_per_chunk": 10.031550016719848,
+     "env_steps_per_s_policy_in_loop": 1633247.1026603424,
+     "peak_mb": 77,
+     "measured": "2026-09-13 14:43:10",
+     "git": "ed00bc3"
+    }
+   },
+   "ppo_update": {
+    "P32_fp32": {
+     "P": 32,
+     "n_envs": 512,
+     "rollout": 32,
+     "minibatch": 4096,
+     "s_per_update": 1.2536681999918073,
+     "genome_updates_per_s": 25.525095077157673,
+     "env_steps_per_s": 418203.1577441513,
+     "peak_mb": 8678,
+     "measured": "2026-09-13 14:43:21",
+     "git": "ed00bc3"
+    },
+    "P128_fp32": {
+     "P": 128,
+     "oom": true,
+     "measured": "2026-09-13 14:54:06",
+     "git": "d2a7396"
+    },
+    "P256_fp32": {
+     "P": 256,
+     "oom": true,
+     "measured": "2026-09-13 14:54:18",
+     "git": "d2a7396"
+    }
+   },
+   "determinism": {
+    "cuda": {
+     "device": "cuda",
+     "n": 4096,
+     "steps": 300,
+     "two_process_bit_equal": true,
+     "gpu_vs_cpu_bit_equal": false,
+     "sha_a": "b3df605a10bc9ab8",
+     "sha_b": "b3df605a10bc9ab8",
+     "sha_cpu": "72a2f714e1169441",
+     "measured": "2026-09-13 14:55:06",
+     "git": "d2a7396"
+    }
+   }
+  }
+ }
+}

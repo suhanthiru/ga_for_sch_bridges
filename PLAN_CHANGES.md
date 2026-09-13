@@ -51,3 +51,38 @@ the greedy cost (the prior g1's), and is excluded from the decision.
 
 Affected evaluations: none; no gate cell has run in this repo. The smoke run started
 before this entry does not count as a gate cell.
+
+## 2026-09-13 — section 0.4 pilot: two targets missed, pruning applied
+
+Evidence: bench/results.json (quiet GPU, 15:02-15:19; the other session's chain log did
+not move during the pass), rendered in findings/pilot.md; the earlier contended pass is
+kept in bench/results_shared.json and agrees in every direction.
+
+| target | registered | measured | ratio |
+|---|---|---|---|
+| environment steps per second | 50 000 | 51.7 M (CUDA-graph replay, 262 144 robots; 5.8 M at 4 096) | 1034x |
+| batched bridge solves per second, grid | 200 | 9 867 (fp32, P = 4 096) | 49x |
+| batched bridge solves per second, neural DSBM | 200 | 2.3 (bf16, P = 256, 1 200 steps) | 0.01x |
+| population PPO genome-updates per second | 128 | 48.9 (bf16, P = 128, minibatch 1 024) | 0.38x |
+
+Also recorded: the covariance-steering gate passes at fp32 (6.5e-7) and fails at bf16
+(3.5e-2), so no solver runs in bf16; two-process bit-equality of a graph-replayed
+rollout holds on the GPU; diffusion training takes 35 s per 8 000 steps.
+
+Rule applied (0.4): a quantity below 50 % of its target prunes the component that
+depends on it, never extends the grammar.
+
+1. Neural per-mutant bridge solving is pruned from rungs 0 and 1. On those rungs the
+   bridge-tagged controller, planner and data components use the per-cell cached nets
+   trained once at BRIDGE_CFG (amortised over every mutant in the cell), and the grid
+   Sinkhorn bridge is the bridge whose parameters a mutant can vary. The neural solver
+   flags (epsilon, IPF iterations, coupling, sampler, steps) take effect at rung 2 only.
+2. The RL step budget on rung 1 drops from 500k to 250k; rung 0 stays at 100k and rung 2
+   at 2M. RL placements are not removed.
+
+The environment-step target was mis-scaled by three orders of magnitude; it stays as
+registered and the internal watchdog is 20 M steps/s at 65k robots. The PPO shortfall
+is an implementation matter (the rollout runs the eager step; a graph-captured rollout
+would roughly halve the update time) and may be revisited without touching the grammar.
+
+Affected evaluations: none; no search cell has run.

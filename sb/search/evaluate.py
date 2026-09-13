@@ -26,7 +26,8 @@ from sb.rl.pop_ppo import PopEnv, PopPPO
 from sb.search.invariants import check_episode_set, tripped
 
 DISTS = ("none", "slip", "rain", "push")
-RUNGS = {0: dict(seeds=1, episodes=30, rl_steps=100_000), 1: dict(seeds=2, episodes=100, rl_steps=500_000),
+# rung-1 RL budget halved by the pilot's pruning rule (PLAN_CHANGES 2026-09-13, section 0.4)
+RUNGS = {0: dict(seeds=1, episodes=30, rl_steps=100_000), 1: dict(seeds=2, episodes=100, rl_steps=250_000),
          2: dict(seeds=10, episodes=200, rl_steps=2_000_000)}
 
 
