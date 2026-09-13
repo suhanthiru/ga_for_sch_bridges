@@ -15,6 +15,7 @@ dependencies = [
     "pyarrow",
     "matplotlib",
     "cma",
+    "tabulate",
 ]
 
 [project.optional-dependencies]

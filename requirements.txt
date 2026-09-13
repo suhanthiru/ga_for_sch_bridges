@@ -6,3 +6,4 @@ pyarrow
 matplotlib
 cma
 pytest
+tabulate

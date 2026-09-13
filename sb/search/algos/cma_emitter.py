@@ -25,7 +25,8 @@ class CMAEmitter:
         opts = dict(seed=seed + 1, verbose=-9, bounds=[list((lo - x0) / scale), list((hi - x0) / scale)])
         if popsize:
             opts["popsize"] = popsize
-        self.es = cma.CMAEvolutionStrategy(np.zeros(self.view.dim), sigma0, opts) if (cma is not None and self.view.dim > 0) else None
+        # cma needs at least two dimensions; one-parameter structures are left to the graph operators
+        self.es = cma.CMAEvolutionStrategy(np.zeros(self.view.dim), sigma0, opts) if (cma is not None and self.view.dim >= 2) else None
         self._pending = None
 
     @property
