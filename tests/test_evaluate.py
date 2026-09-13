@@ -25,6 +25,7 @@ def test_pd_stack_evaluates_and_is_deterministic(cpu, small_demos, tmp_path):
     assert set(r1.per_disturbance) == {"none", "slip"} and r1.per_disturbance["none"] > 0.8
     assert np.isfinite(r1.fitness) and r1.infer_ms < 50 and not r1.has_bridge and not r1.has_rl
     row = r1.row(); assert "success_slip" in row and "per_disturbance" not in row
+    assert "inv_wall_penetration" in row and not r1.quarantined and r1.invariants["action_bounds"] == 0.0
 
 
 def test_invalid_genome_is_logged_not_dropped(cpu, small_demos, tmp_path):
@@ -70,3 +71,10 @@ def test_ppo_controller_trains_from_a_bc_warm_start(cpu, small_demos, tmp_path):
     r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
     assert r.valid, r.invalid_reason + r.error
     assert r.has_rl and np.isfinite(r.fitness) and r.train_s > 0
+
+
+def test_rung0_cells_are_the_eight_corners():
+    from sb.search.cells import rung0_cells
+    cells = rung0_cells()
+    assert len(cells) == 8 and len({tuple(c["vector"]) for c in cells}) == 8
+    assert sum(c["env"] == "E2" for c in cells) == 4

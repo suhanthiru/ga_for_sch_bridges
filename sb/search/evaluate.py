@@ -22,6 +22,7 @@ from sb.envs.gen_task import GenTask
 from sb.policies.common import obs_of
 from sb.policies.demos import load_demos
 from sb.rl.pop_ppo import PopEnv, PopPPO
+from sb.search.invariants import check_episode_set, tripped
 
 DISTS = ("none", "slip", "rain", "push")
 RUNGS = {0: dict(seeds=1, episodes=30, rl_steps=100_000), 1: dict(seeds=2, episodes=100, rl_steps=500_000),
@@ -61,12 +62,16 @@ class EvalResult:
     eval_s: float = 0.0
     infer_ms: float = float("nan")
     oracle_reads_at_test: int = 0
+    invariants: dict = field(default_factory=dict)
+    quarantined: bool = False
     error: str = ""
 
     def row(self):
-        d = asdict(self); d.pop("per_disturbance")
+        d = asdict(self); d.pop("per_disturbance"); d.pop("invariants")
         for k, v in self.per_disturbance.items():
             d[f"success_{k}"] = v
+        for k, v in self.invariants.items():
+            d[f"inv_{k}"] = v
         return d
 
 
@@ -144,25 +149,41 @@ def eval_id_of(genome, cell_id, rung, seed):
     return hashlib.sha256(f"{genome.gid}|{cell_id}|{rung}|{seed}".encode()).hexdigest()[:16]
 
 
+class _Recorder:
+    """Wraps the stack's act to keep the executed actions for the invariant checks."""
+
+    def __init__(self, act):
+        self.act, self.U = act, []
+
+    def __call__(self, g, k, tau, step):
+        u, extra = self.act(g, k, tau, step); self.U.append(u.detach().clone()); return u, extra
+
+
 @torch.no_grad()
 def score(stack, cell, seed, episodes, device):
-    """Episodes over the cell's disturbances with the oracle guard armed."""
-    per, succ_all, coll, energy = {}, [], [], []
+    """Episodes over the cell's disturbances with the oracle guard armed, plus the exploit
+    invariants on the recorded trajectories and actions (worst fraction over disturbances)."""
+    per, succ_all, coll, energy, inv = {}, [], [], [], {}
     OracleGuard.armed, OracleGuard.count = True, 0
     t0 = time.time()
     try:
         for d in cell.disturbances:
             tk = GenTask(TR.Layout(cell.layout), d, episodes, 50_000 + seed, device, **{k: v for k, v in cell.descriptor.items() if k in ("slip_scale", "aniso", "n_seed", "push_mult", "heading_std")})
-            out = tk.rollout(stack.act, n=episodes)
+            rec = _Recorder(stack.act)
+            out = tk.rollout(rec, n=episodes, record=True)
             per[d] = float(out["success"].float().mean())
             succ_all.append(out["progress"].cpu().numpy()); coll.append(float(1 - out["alive"].float().mean())); energy.append(float(out["energy"].mean()))
+            geo = dict(wall_x=0.5, gaps=list(tk.layout.gaps), pile=tk.layout.pile, means=[m.cpu() for m in tk.means], covs=[c.cpu() for c in tk.covs])
+            chk = check_episode_set(out["traj"], torch.stack(rec.U, 1), out["success"], geo)
+            for k, v in chk.items():
+                inv[k] = max(inv.get(k, 0.0), v)
     finally:
         OracleGuard.armed = False
     prog = np.concatenate(succ_all)
     k20 = max(1, len(prog) // 20)
     return dict(per=per, success=float(np.mean(list(per.values()))), collision=float(np.mean(coll)), energy=float(np.mean(energy)),
                 cvar_01=float(np.sort(prog)[:max(1, int(np.ceil(0.1 * len(prog))))].mean()), worst_of_20=float(np.sort(prog)[:k20].mean()),
-                eval_s=time.time() - t0, oracle_reads=OracleGuard.count)
+                eval_s=time.time() - t0, oracle_reads=OracleGuard.count, invariants=inv)
 
 
 def latency_ms(stack, device):
@@ -203,6 +224,7 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         sc = score(stack, cell, seed, episodes, device)
         res.per_disturbance, res.success, res.collision, res.energy = sc["per"], sc["success"], sc["collision"], sc["energy"]
         res.cvar_01, res.worst_of_20, res.eval_s, res.oracle_reads_at_test = sc["cvar_01"], sc["worst_of_20"], sc["eval_s"], sc["oracle_reads"]
+        res.invariants = sc["invariants"]; res.quarantined = bool(tripped(sc["invariants"]))
         if sc["oracle_reads"]:
             res.valid, res.invalid_reason = False, "oracle read at test time"; return res
         res.fitness = fitness_of(res.success, res.collision, res.train_s)
