@@ -2,7 +2,7 @@
 
 ## The_Tower|NVIDIA GeForce RTX 3080 Ti — quiet GPU
 
-measured 2026-09-13 15:19:01, commit 137665a
+measured 2026-09-13 18:57:12, commit b20c412
 
 | target | registered | measured | ratio | decision |
 |---|---|---|---|---|
@@ -13,7 +13,7 @@ measured 2026-09-13 15:19:01, commit 137665a
 
 Configurations: env cudagraph_n262144, grid float32_P4096, neural P256_bf16, ppo P128_bf16.
 
-Gate at fp32: pass; bf16 max abs err 0.03512045478978856. Determinism (two processes): {'cuda': True}. Graph replay bit-equal on repeat: {'cudagraph_n4096': True, 'cudagraph_n32768': True, 'cudagraph_n262144': True}. Diffusion: 35.1 s per 8000 steps.
+Gate at fp32: pass; bf16 max abs err 0.03512045478978856. Determinism (two processes): {'cuda': True}. Graph replay bit-equal on repeat: {'cudagraph_n4096': True, 'cudagraph_n32768': True, 'cudagraph_n262144': True}. Diffusion: 41.3 s per 8000 steps.
 
 
 # Contended pass (kept for the record)

@@ -63,7 +63,8 @@ def render(summaries, title):
         lines.append(f"Configurations: env {r['env_cfg']}, grid {r['grid_cfg']}, neural {r['neural_cfg']}, ppo {r['ppo_cfg']}.\n")
         lines.append(f"Gate at fp32: {'pass' if r['gate_fp32_pass'] else 'FAIL'}; bf16 max abs err {r['gate_bf16_err']}. "
                      f"Determinism (two processes): {r['determinism']}. Graph replay bit-equal on repeat: {r['env_bit_equal']}. "
-                     f"Diffusion: {r['diffusion_s_per_8000'] and round(r['diffusion_s_per_8000'], 1)} s per 8000 steps.\n")
+                     f"Diffusion: {r['diffusion_s_per_8000'] and round(r['diffusion_s_per_8000'], 1)} s per 8000 steps"
+                     + (f" (graph-captured: {round(r['diffusion_graphed_s_per_8000'], 1)} s)" if r.get("diffusion_graphed_s_per_8000") else "") + ".\n")
     return "\n".join(lines)
 
 
