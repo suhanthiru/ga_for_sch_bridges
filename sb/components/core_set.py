@@ -129,11 +129,14 @@ class CtlDiffusion:
         return ChunkCtl(pol, ctx["task"])
 
 
-@component("controller.ppo", ("controller",), params={"lr": P.loguniform(1e-4, 1e-3), "clip": P.uniform(0.1, 0.3)},
-           tag="rl", cost=dict(gpu=True), test=T + "test_controllers")
+@component("controller.ppo", ("controller",), params={"lr": P.loguniform(1e-4, 1e-3), "clip": P.uniform(0.1, 0.3), "ent": P.loguniform(1e-4, 1e-2)},
+           sub_slots={"data": SlotSpec("data", optional=False)}, tag="rl", cost=dict(gpu=True), test=T + "test_controllers")
 class CtlPPO:
+    """A Gaussian policy trained by PPO at the rung's step budget, warm-started by
+    behaviour cloning on the data sub-slot (SEARCH_PLAN 2.4: every RL placement has a
+    warm start). The evaluator does the training; build returns the recipe."""
     def build(self, params, ctx):
-        return dict(kind="ppo", lr=float(params["lr"]), clip=float(params["clip"]))       # trained by the evaluator (sb.rl.pop_ppo)
+        return dict(kind="ppo", lr=float(params["lr"]), clip=float(params["clip"]), ent=float(params["ent"]), data=ctx["sub"]["data"])
 
 
 # ---------------------------------------------------------------------- data

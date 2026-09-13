@@ -52,7 +52,8 @@ def test_controllers(reg, ctx):
     g = ctx["task"].sample(0, 8); tau = torch.full((8,), 0.2)
     u, _ = _build(reg, "controller.pd", ctx, kp=6.0)(g, 0, tau, 20)
     assert u.shape == (8, 3)
-    assert _build(reg, "controller.ppo", ctx)["kind"] == "ppo"
+    rec = _build(reg, "controller.ppo", dict(ctx, sub={"data": ctx["demos"]}))
+    assert rec["kind"] == "ppo" and rec["data"][0].shape == ctx["demos"][0].shape
     spec = reg["controller.bridge_drift"]
     assert spec.tag == "bridge" and spec.axes["role"] == "bridge_drift" and "reference" in spec.params
 

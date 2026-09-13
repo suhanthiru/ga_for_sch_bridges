@@ -153,6 +153,28 @@ class PopPPO:
                 _adam_step(self.params, grads, self.m, self.v, self.step_count, self.lr)
         return obs, dict(success=(succ / n_done.clamp_min(1)).detach(), episodes=n_done)
 
+    def warm_start_bc(self, tk, G, U, steps=300, batch=512, lr=1e-3, obs_fn=obs_of, gen=None):
+        """Behaviour-clone every actor's mean onto (obs, action) pairs from trajectories G, U
+        (pre-tanh targets via atanh of the scaled action)."""
+        from torch.func import functional_call, grad, vmap
+        a_par = {k[2:]: v for k, v in self.params.items() if k.startswith("a.")}
+        m = {k: torch.zeros_like(v) for k, v in a_par.items()}; vv = {k: torch.zeros_like(v) for k, v in a_par.items()}
+        n = G.shape[0]; dev = self.device
+        target_scale = SCALE.to(dev)
+
+        def loss_fn(p, o, t):
+            return ((functional_call(self.actor_base, p, (o,)) - t) ** 2).mean()
+
+        vgrad = vmap(grad(loss_fn), in_dims=(0, None, None))
+        for it in range(1, steps + 1):
+            i = torch.randint(n, (batch,), generator=gen, device=dev); t0 = torch.randint(300, (batch,), generator=gen, device=dev)
+            k = t0 // TK.T_SKILL; tau = (t0 % TK.T_SKILL).float() / TK.T_SKILL
+            obs = obs_fn(tk, G[i, t0], k, tau)
+            a = (U[i, t0] / target_scale).clamp(-0.999, 0.999); pre = torch.atanh(a)
+            grads = vgrad(a_par, obs, pre)
+            _adam_step(a_par, grads, m, vv, it, torch.full((self.P,), lr, device=dev))
+        self.params.update({"a." + k: v for k, v in a_par.items()})
+
     @torch.no_grad()
     def act(self, obs_flat, n):
         """Deterministic actions for the flat (P*n, d) observation batch."""

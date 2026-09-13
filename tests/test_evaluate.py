@@ -58,3 +58,15 @@ def test_noise_and_safety_wrap_the_controller(cpu, small_demos, tmp_path):
     torch.manual_seed(0); u1, _ = st.act(tk.sample(0, 8), 0, torch.zeros(8), 0)
     torch.manual_seed(1); u2, _ = st.act(tk.sample(0, 8), 0, torch.zeros(8), 0)
     assert not torch.equal(u1, u2) and u1[:, :2].norm(dim=1).max() <= 1.0 + 1e-6
+
+
+def test_ppo_controller_trains_from_a_bc_warm_start(cpu, small_demos, tmp_path):
+    G = Grammar(load_all())
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.ppo", (("clip", 0.2), ("ent", 1e-3), ("lr", 3e-4))),
+             Node("c", "data.demos", (("mult", 1), ("n_demo", 5))))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge("b", "data", "c"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    assert G.validate(g) == [], G.validate(g)
+    r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
+    assert r.valid, r.invalid_reason + r.error
+    assert r.has_rl and np.isfinite(r.fitness) and r.train_s > 0

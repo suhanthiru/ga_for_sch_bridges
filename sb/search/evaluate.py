@@ -19,7 +19,9 @@ from sb.core.substitute import ablate_bridges
 from sb.envs import terrain as TR
 from sb.envs.base import Caps
 from sb.envs.gen_task import GenTask
+from sb.policies.common import obs_of
 from sb.policies.demos import load_demos
+from sb.rl.pop_ppo import PopEnv, PopPPO
 
 DISTS = ("none", "slip", "rain", "push")
 RUNGS = {0: dict(seeds=1, episodes=30, rl_steps=100_000), 1: dict(seeds=2, episodes=100, rl_steps=500_000),
@@ -77,6 +79,23 @@ class OracleGuard:
     def touch(cls):
         if cls.armed:
             cls.count += 1
+
+
+def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None):
+    """PPO for one genome: BC warm start on the recipe's data, then `steps` environment
+    steps of PPO. Returns a controller (g, k, tau, step) -> (u, None)."""
+    G, U = recipe["data"]
+    env = PopEnv(tk, 1, n_envs)
+    ppo = PopPPO(1, device, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed)
+    gen = torch.Generator(device=device).manual_seed(seed)
+    ppo.warm_start_bc(tk, G, U, gen=gen)
+    obs = env.reset()
+    for _ in range(max(1, steps // (n_envs * rollout))):
+        obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=4096, gen=gen)
+
+    def ctl(g, k, tau, step):
+        return ppo.act(obs_of(tk, g, k, tau), g.shape[0]), None
+    return ctl
 
 
 class Stack:
@@ -161,7 +180,7 @@ def fitness_of(success, collision, train_s, pd_train_s=1.0):
     return success - 0.02 * np.log(max(train_s, 1e-3) / pd_train_s + 1.0) - 0.05 * collision
 
 
-def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, episodes=None, ablate=None, demos=None):
+def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, episodes=None, ablate=None, demos=None, rl_steps=None):
     device = device or settings.device(); cfg = RUNGS[rung]; episodes = episodes or cfg["episodes"]
     models_dir = models_dir or (settings.RESULTS / "search" / "models"); models_dir.mkdir(parents=True, exist_ok=True)
     res = EvalResult(eval_id_of(genome, cell.cell_id, rung, seed), genome.gid, genome.sid, cell.cell_id, rung, seed,
@@ -174,8 +193,9 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         demos = demos if demos is not None else load_demos(settings.demo_path(cell.layout), device)
         t0 = time.time()
         stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps())
-        if isinstance(stack.controller, dict):
-            res.valid, res.invalid_reason = False, "rl controller training is not wired into evaluate yet"; return res
+        if isinstance(stack.controller, dict) and stack.controller.get("kind") == "ppo":
+            stack.controller = train_rl(stack.controller, tk, seed, rl_steps if rl_steps is not None else cfg["rl_steps"], device,
+                                        n_envs=min(512, max(8, episodes * 4)))
         res.train_s = time.time() - t0
         res.infer_ms = latency_ms(stack, device) if device.type == "cpu" else float("nan")
         if np.isfinite(res.infer_ms) and res.infer_ms > 50:
@@ -187,7 +207,7 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
             res.valid, res.invalid_reason = False, "oracle read at test time"; return res
         res.fitness = fitness_of(res.success, res.collision, res.train_s)
         if (ablate if ablate is not None else rung >= 2) and res.has_bridge:
-            ab = evaluate(ablate_bridges(genome, grammar), cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos)
+            ab = evaluate(ablate_bridges(genome, grammar), cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos, rl_steps=rl_steps)
             res.ablation_delta, res.ablation_eval_id = res.fitness - ab.fitness, ab.eval_id
     except Exception as e:                                   # logged, never silently dropped
         res.valid, res.invalid_reason, res.error = False, "exception", f"{type(e).__name__}: {e}"
