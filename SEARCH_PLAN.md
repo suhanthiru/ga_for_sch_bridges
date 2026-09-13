@@ -399,3 +399,133 @@ slots are manifold, seam, controller, trigger, noise, safety; the seam width and
 triggers now act on the stack. It is the pilot's grammar only; the main manifest is
 frozen separately after stage C, and the "never extended mid-search" rule applies per
 manifest.
+
+## 3. and 4. Fitness and the ladder
+
+Registered in 2.7 and 2.8 above; the program's section numbers are kept here so a reader
+of the program finds them.
+
+## 5. Search portfolio
+
+Registered 2026-09-13, after the pilot's first tranche was launched under the same rules
+and before any archive row was analysed. "Pilot" below is the 10 % pilot on
+`grammar_pilot/`; "main" is the search on the main manifest after stage C.
+
+### 5.1 Primary: CVT-MAP-Elites with CMA-MAE (implemented, pilot and main)
+
+Elite map over the family's descriptor axes (`sb/envs/family.py`), CVT with 2 000
+centroids (the pilot's rung 0 uses the eight fixed cells of 2.8 instead, and its map is
+those cells). Proposal order in `sb/search/loop.py`: every seed genome first (the 200
+random seeds of the manifest), then, with probability 0.3, a CMA batch on the structure
+of a random elite (one `cma` emitter per structure id, at most 64 live, sigma0 0.3 in
+the normalised parameter box, structures with fewer than two continuous parameters left
+to the graph operators), otherwise one offspring of a random elite: a crossover with a
+second elite with probability 0.2 (aligned on innovation numbers), else one mutation
+drawn uniformly from {replace a component, perturb a parameter (log-normal on log-scale
+parameters), fill an empty slot, empty an optional slot, flip a flag}. The offspring is
+aimed at its parent's cell with probability 0.7, else at a random cell. The program's
+0.5 / 0.3 / 0.2 mutation mix and its 20 % novelty-selected offspring are main-search
+settings; the pilot logs novelty levels (0-3, `sb/core/novelty.py`) but does not select
+on them.
+
+Surrogate (`sb/search/surrogate.py`): a gradient-boosted regressor from (one-hot root
+slot contents, binned parameters, descriptor) to rung-0 fitness, trained once 2 000 rows
+exist and every 500 rows after, held-out R2 logged at every retrain; pre-screens ten
+offspring and evaluates the top three plus one at random; a pick whose structure fills
+more than 30 % of the last 50 proposals is skipped for the next best.
+
+### 5.2-5.7 The other members (state at registration)
+
+- NEAT-style graph evolution: innovation-aligned crossover and the compatibility distance
+  are implemented (`sb/core/grammar.py`); speciation and the add-node / add-edge
+  operators are main-search items and are not in the pilot.
+- Grammar-guided GP: the DSL and tree view exist (`Genome.dsl`); subtree crossover and
+  mutation under the depth cap of 6 with node-count parsimony are main-search items.
+- NSGA-III: hand-rolled in `sb/search/algos/nsga3.py` over the objectives of 2.7 with
+  Das-Dennis reference directions; reported as the front per cell. Main search.
+- Differentiable QD: the fast env is not differentiable through its disturbance model;
+  the ES fallback (sep-CMA on a fixed structure) is what 5.1's emitters already do.
+- POET-style coevolution: `sb/search/algos/poet.py` (children move one axis one bin,
+  admitted when the best stacks score in [0.2, 0.8], at most 200 active). Main search.
+- Islands, AURORA descriptors, Lamarckian flag, restart policy: main search. The pilot
+  is one process; its algorithm column is `mapelites` or `random`.
+- LLM-guided mutation: off, and not part of any registered comparison.
+
+Budget split for the main search as in the program (40 / 15 / 15 / 10 / 10 / 5 / 5 %).
+An algorithm that does not beat the random control on cells filled and mean validated
+elite fitness on its first 5 % slice, confirmed on a second 5 % slice, is dropped and its
+budget goes to 5.1.
+
+### 5.8 Controls (implemented)
+
+Three control searches with the same evaluator, cells, ladder and archive format:
+no-bridge (`NO_BRIDGE` filter: no component tagged bridge can be proposed or validated),
+no-RL (`NO_RL`), and random (`--algorithm random`: uniform valid genomes, no elite
+reuse). The no-bridge control is the baseline tuner. Their rows carry the filter name.
+
+### 5.9 Throughput
+
+Section 0.4 and the pilot report (`findings/pilot.md`). The pilot's measured rate and
+its consequence are the PLAN_CHANGES entry of 2026-09-13.
+
+### 5.10 Sensitivity
+
+`sb/search/sensitivity.py`: the primary search re-run at 10 % budget under fitness
+weights x0.5 and x1.5, promotion margin 0.05 and 0.15, and CVT seed 1; a cell enters the
+findings only if its elite's structure id is the same across all six variants.
+
+## 6. Exploit protocol (implemented)
+
+`sb/search/invariants.py` recomputes, per episode and from the trajectory with its own
+segment geometry: wall penetration (segment-obstacle intersection on moved segments),
+box exit, goal-by-marginal (success claimed with Mahalanobis distance to the final
+marginal above 2), NaN/inf in states or actions, action bounds, time-to-goal below 0.9x
+the oracle's and energy below 0.5x the oracle's where an oracle time and energy exist.
+Any trip sets `quarantined`, the row stays in the archive and is excluded from the elite
+map; a fitness jump above 0.15 over the cell's previous elite is re-run at rung-1 sample
+size before acceptance (`sb/search/ladder.py`). A confirmed exploit is an EXPLOITS.md
+entry with the reproducing seed and the env fix; rows on the buggy version are tagged
+`exclude:exploit`, never deleted.
+
+## 7. Analysis
+
+FINDINGS_search.md is written in the program's thirteen-section order (the skeleton is
+committed); every number in it comes from `sb.stats` or the census functions in
+`sb/search/report.py`, and interim reports (`findings/search_interim_<n>.md`) are
+produced at checkpoints with the map, slot census, negative space, algorithm census,
+ablation contribution by slot and novelty levels.
+
+### 7.1 The "why" model
+
+Features per (genome, cell), `sb/stats/why_features.py`: W2(demo endpoints, target),
+terrain-Sigma condition number along the mean route, demo endpoint multimodality (GMM
+BIC), PD reachability of the target from the demos' first handoff under the cell's
+disturbance, off-manifold shell fraction, KL(demos || reference bridge endpoints), and
+the terrain-information level. Model: ridge regression and a gradient-boosted regressor
+of the validated ablation delta on these features, fitted with one environment family
+held out in turn (reported per family), then tested once on the sealed E9/E10 rows.
+Pre-registered threshold: held-out R2 below 0.3 on the sealed families means H is
+unsupported at the mechanistic level and the map is reported as descriptive only. The
+clause-by-clause 2x2x2 table of H, the axis attribution (reference, coupling, marginal
+constraint, solver; dynamic SB and entropic OT separately), the tail-vs-mean cells
+(CVaR_0.1 gap >= 0.15 at equal mean) and the red-team maps follow the program text.
+The pilot has one family (E1, with E2 cells at rung 1+), so the pilot fits the model
+but cannot hold a family out; that number is reported as in-sample and not used.
+
+## 8. Engineering
+
+`python search.py --pilot|--plan --budget N [--resume] [--algorithm mapelites|random]`,
+checkpoints every 100 evaluations with hashed manifests and a verified resume; every
+component declares a test the freeze runs; the ablation delta is a unit-tested function
+(`evaluate(..., ablate=)`); figures under `figures/`, the map as `map.parquet`.
+
+## 9. Stop rules
+
+As in the program, read at every checkpoint report: no validated positive ablation
+delta for any bridge genome after 5k rung-0 evaluations -> interim note, continue; the
+same after the full budget -> "nowhere in this family"; no-bridge map within 0.02 of the
+full map everywhere -> decoration; a genome exploiting a bug is not a result; the grammar
+is not extended mid-search; a failed pilot prunes; a failed gate narrows; sensitivity
+stability below 50 % -> the primary result is reported unstable; the "why" model failing
+on the sealed families -> H unsupported, map descriptive. For the pilot the 5k rule is
+read at 1k, with the same action (a note, no change).
