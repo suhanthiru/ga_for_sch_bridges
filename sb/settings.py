@@ -10,7 +10,7 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = Path(os.environ.get("SB_RESULTS", ROOT / "results"))
-DATA = ROOT / "data"
+DATA = Path(os.environ.get("SB_DATA", ROOT / "data"))
 GATE = RESULTS / "gate"
 
 
