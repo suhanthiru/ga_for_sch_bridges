@@ -274,3 +274,118 @@ Order of implementation: E1 (done) -> E2 (the estimator slot needs it, and the
 `hidden_states` sibling repo supplies the belief machinery) -> E8 and E7 (parameter
 changes only) -> E3 -> E6 -> E5 -> E4 (the only new physics). Each lands with its oracle
 test and its bins in `sb/core/descriptor.py` before the next starts.
+
+---
+
+## 2. Grammar: genome, slots, components, fitness, ladder
+
+Registered before any component in `sb/components/` exists. The grammar is frozen by
+`python -m sb.cli freeze`, which runs every component's declared test, checks that every
+bridge component has a nearest-non-bridge substitute for each slot it can fill, builds
+the innovation table, and writes `grammar/manifest.json` with its hash. After the freeze
+the only permitted change is shrink-only (`grammar/disabled.json`, with an ERRORS entry).
+New ideas go to IDEAS_NEXT.md.
+
+### 2.1 Genome
+
+A genome is a directed graph of typed components filling typed slots (a slot may be
+empty where the slot spec allows it), with continuous, integer and categorical
+hyperparameters on the components, and the section-2.4 variation flags. Canonical form:
+depth-first from the root in the fixed slot order, nodes renumbered; `gid` is the hash
+of the canonical form, `sid` the same with parameter values stripped. The innovation
+number of an edge is fixed at freeze from the sorted list of every legal
+(parent component, slot, child component) triple, so it is the same in every island and
+across resumes. One representation, three views: a fixed-length parameter vector for a
+given `sid` (CMA-MAE, ES, the surrogate), the graph (structural mutation, NEAT-style
+crossover aligned on innovation numbers), and an S-expression derivation tree in a DSL
+whose nonterminals are the slot types and whose productions are the components (GGGP,
+depth cap 6, node count as parsimony).
+
+### 2.2 Slots
+
+reference, planner, seam, controller, value, data, augment, trigger, noise, time-split,
+manifold, estimator (E2 only), safety, adapt — each with the option sets of the program.
+Following the gate (FINDINGS_generator, verdict "neither" on seeds 0-4; replication
+pending at registration): the `data` slot carries no bridge option; it holds
+{demos, noised, DART, PD-rollouts, PD-relabel (bridge states, PD labels), MPPI-rollouts,
+GC-diffusion-rollouts, MPC-rollouts, mixture with learned ratios, RL-collected}.
+PD-relabel keeps the bridge as a state generator, so its "bridge" tag stays for the
+ablation delta (its substitute is PD-rollouts). If the replication reverses the verdict,
+this paragraph is amended through PLAN_CHANGES before the freeze.
+
+### 2.3 Bridge components
+
+Every bridge is a `BridgeSolver`: `solve(mu0, mu1 | list, reference, cost, horizon) ->
+Bridge` with `fwd_drift`, `bwd_drift`, `sample(x0, n, sampler, steps, gen)`, and must pass
+the linear-Gaussian closed-form gate at 1e-5 in fp32 (tests/test_core.py) plus the
+two-mode grid gate (a mixture pair with a known Sinkhorn solution). Each is labelled on
+the four axes (reference, coupling, marginal constraint, solver/representation) and as
+dynamic SB or entropic OT; reports are by axis. The variant list is the program's
+(sb-brownian ... sb-score-bridge) with the solver flags on every variant: solver in
+{DSBM, IPF, flow-iter0, dual}, IPF iterations in {0, 1, 2, 5}, epsilon log-uniform in
+[1e-3, 1e-1], coupling in {independent, demo-paired, OT, minibatch-OT}, sampler in
+{SDE-EM, ODE-Heun, ODE-RK4}, steps in {8, 16, 32, 64}. On rungs 0-1 the neural solvers
+run at the pilot's budget or are replaced by the grid solver per section 0.4's pruning
+rule; rung 2 always trains the neural solver at BRIDGE_CFG.
+
+### 2.4 RL components
+
+PPO or SAC (mutation picks), 100k steps at rung 0, 500k at rung 1, 2M at rung 2, reward
+success - 0.01 |u|^2 unless the placement defines its own. Placements: RL-drift,
+RL-residual-on-{PD, bridge, diffusion}, RL-cloud, RL-split, RL-switch, RL-noise,
+RL-subgoal, RL-critic-as-value, bridge-shaped-RL, bridge-curriculum-RL,
+bridge-exploration-RL, RL-finetune-diffusion. Every placement is warm-started (residuals
+at zero; controllers from BC on the data slot; critics from distance or the bridge
+log-density); rung 0 evaluates the warm start alone and after 100k steps and keeps the
+placement if either beats its non-RL parent. RL placements are never pruned for lack of
+steps alone. The population implementation is sb/rl/pop_ppo.py.
+
+### 2.5 Variation flags
+
+time-reversed execution, drift blending alpha(log-density), density gating, marginal
+annealing, cost-in-reference vs cost-in-objective, per-skill epsilon, bridge-of-bridges,
+ODE vs SDE sampling, learned intermediate marginals, action-space bridge. Each is a
+mutation operator; all combinations are reachable.
+
+### 2.6 Baselines in the menu
+
+planner: MPPI, Diffuser, OT-flow-matching. controller: TD-MPC2-style, GC-RL with HER,
+CVaR-MPC, DR-MPC. data: MPPI-rollouts, GC-diffusion-rollouts, MBRL-imagined. safety:
+CBF-QP shield, bridge-density gate, DR-MPC. adapt: online bridge re-solve from the first
+50 steps' slip estimate, online PD gain adaptation, online model update. Every baseline's
+hyperparameters are tuned by the same budget through the no-bridge control search.
+
+### 2.7 Fitness, constraints, secondary metrics
+
+Fitness = mean success over the cell's disturbance set - 0.02 log(compute relative to
+PD) - 0.05 collision rate, the three reported separately. Invalid (not low): inference
+> 50 ms per step on CPU at batch 1; a failed component test; any read of the oracle at
+test time (train-time only, and only in the data and value slots; enforced by the
+capability object, a test wrapper without the oracle attribute, and a call counter).
+Logged, not optimised: handoff error, energy, recovery rate, policy entropy, state
+coverage, and for every bridge-containing genome the ablation delta = fitness minus the
+fitness of the same genome with every bridge slot replaced by its nearest non-bridge
+neighbour (bridge-mean -> spline, bridge-rollouts / PD-relabel -> PD-rollouts,
+bridge-backward-drift -> distance, bridge-cloud -> waypoint, bridge-drift -> PD, bridge
+plan -> MPPI, bridge-epsilon -> fixed Gaussian). NSGA-III objectives: success, CVaR_0.1,
+worst-of-20, collision, energy, train compute, inference latency, demo count. Minimality
+by greedy backward elimination of every validated elite; deployability = inference
+<= 20 ms at a Jetson-class budget (reported, flagged).
+
+### 2.8 Evaluation ladder
+
+Rung 0: 1 seed, 30 episodes, 100k RL steps, E1, the 8 fixed cells (the 2x2x2 corners of
+slip magnitude x push rate x observability mapped to centroids; stored in the manifest);
+every mutant. Rung 1: 2 seeds, 100 episodes, 500k RL steps, the mutant's own cell;
+promoted if rung-0 fitness >= current elite - 0.1. Rung 2: 10 seeds, 200 episodes, 2M RL
+steps, the ablation delta, fresh disturbance seeds, fp32 with deterministic algorithms
+and a two-run bit check before every batch; only elites that held a cell for >= 50
+generations, and every elite at the end. Rung 3: hardware, registered unavailable. Every
+evaluation at every rung is appended to `search/archive/` with its full descriptor,
+fitness, secondary metrics and algorithm; nothing is deleted, only tagged.
+
+### 2.9 Sealed families
+
+After the freeze a fresh session receives `sb/envs/base.py`, `sb/envs/family.py` and the
+section-1 table, nothing else, and designs E9 and E10. Their first archive rows carry the
+freeze date; any earlier row invalidates the "why" model.
