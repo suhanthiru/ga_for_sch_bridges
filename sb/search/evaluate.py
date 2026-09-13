@@ -97,7 +97,7 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
     ppo.warm_start_bc(tk, G, U, gen=gen)
     obs = env.reset()
     for _ in range(max(1, steps // (n_envs * rollout))):
-        obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=4096, gen=gen)
+        obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=1024, gen=gen)
 
     def ctl(g, k, tau, step):
         return ppo.act(obs_of(tk, g, k, tau), g.shape[0]), None

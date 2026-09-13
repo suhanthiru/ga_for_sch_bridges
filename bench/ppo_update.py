@@ -19,7 +19,7 @@ from sb.rl.pop_ppo import PopEnv, PopPPO  # noqa: E402
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--sizes", default="32,64,128"); ap.add_argument("--minibatch", type=int, default=4096)
+    ap = argparse.ArgumentParser(); ap.add_argument("--sizes", default="32,64,128"); ap.add_argument("--minibatch", type=int, default=1024)
     ap.add_argument("--n", type=int, default=512); ap.add_argument("--rollout", type=int, default=32)
     a = ap.parse_args(); device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(machine_info())
