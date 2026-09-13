@@ -94,14 +94,15 @@ class OracleGuard:
             cls.count += 1
 
 
-def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None, obs_fn=obs_of, obs_dim=OBS_DIM):
+def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None, obs_fn=obs_of, obs_dim=OBS_DIM, autocast=True):
     """PPO for one genome. `ppo`: BC warm start on the recipe's data, then `steps` env
     steps. `ppo_residual`: a bounded residual on the recipe's base controller, warm-started
-    at zero. Returns a controller (g, k, tau, step) -> (u, None)."""
+    at zero. Returns a controller (g, k, tau, step) -> (u, None). `autocast` is bf16 on
+    the search rungs; the validation rung passes False (fp32, SEARCH_PLAN 2.8)."""
     residual = recipe["kind"] in ("ppo_residual", "ppo_noise"); noise = recipe["kind"] == "ppo_noise"
     env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3), obs_fn=obs_fn,
                  mode="noise" if noise else ("residual" if residual else "action"))
-    ppo = PopPPO(1, device, obs_dim=obs_dim, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(device.type == "cuda"))
+    ppo = PopPPO(1, device, obs_dim=obs_dim, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(autocast and device.type == "cuda"))
     gen = torch.Generator(device=device).manual_seed(seed)
     if residual:
         with torch.no_grad():                      # zero residual at the start: the last layer's weight and bias
@@ -280,10 +281,10 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps(), obs_fn=obs_fn, obs_dim=obs_dim, rung=rung)
         budget = rl_steps if rl_steps is not None else cfg["rl_steps"]
         if isinstance(stack.controller, dict) and stack.controller.get("kind") in ("ppo", "ppo_residual"):
-            stack.controller = train_rl(stack.controller, tk, seed, budget, device, n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)
+            stack.controller = train_rl(stack.controller, tk, seed, budget, device, n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim, autocast=rung < 2)
         if isinstance(stack.noise, dict) and stack.noise.get("kind") == "rl_noise":
             stack.controller = train_rl(dict(stack.noise, kind="ppo_noise", base=stack.controller), tk, seed, budget, device,
-                                        n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)
+                                        n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim, autocast=rung < 2)
             stack.noise = None                                  # the trained controller carries its own noise now
         res.train_s = time.time() - t0
         res.infer_ms = latency_ms(stack, device) if device.type == "cpu" else float("nan")
