@@ -123,7 +123,9 @@ class Search:
 
     def _rung(self, g, desc, cell, rung, seeds):
         """Evaluate at a rung over its seeds; mean fitness, or None if any seed is invalid or quarantined."""
+        t0 = time.time()
         rows = [self._row(g, desc, cell, rung, sd, self.evaluate(g, desc, rung, sd, self.G)) for sd in seeds]
+        self.log(f"  r{rung} cell {cell} seeds {seeds}: " + " ".join(f"{r.get('fitness', float('nan')):.3f}" for r in rows) + f" ({time.time() - t0:.0f}s)")
         if not all(r["valid"] for r in rows) or any(r.get("quarantined", False) for r in rows):
             return None, rows
         return float(np.mean([r["fitness"] for r in rows])), rows
@@ -131,8 +133,11 @@ class Search:
     def step(self):
         g, desc = self.propose()
         cell = self.map.cell_of(desc)
+        t0 = time.time()
         r = self.evaluate(g, desc, 0, 0, self.G)
         row = self._row(g, desc, cell, 0, 0, r)
+        self.log(f"eval {self.n_evals} r0 cell {cell} {g.provenance.algorithm or self.algorithm}/{g.provenance.op or 'seed'} "
+                 f"fitness {r.get('fitness', float('nan')):.3f} valid {r.get('valid')} {time.time() - t0:.0f}s  {g.dsl()[:120]}")
         improved = False
         elite = self.map.elite.get(cell); elite_f = elite["fitness"] if elite else None
         if r["valid"] and not r.get("quarantined", False) and after_rung0(r["fitness"], elite_f).rung == 1:
