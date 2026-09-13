@@ -1,6 +1,6 @@
 """Population PPO: seconds per full update (32 x 512 rollout plus 4 epochs of minibatches)
 and genome-updates per second, for P in {32, 64, 128}, actor+critic 4x256, fp32 and
-bf16 autocast (the search rungs use bf16; rung 2 is fp32).
+bf16 autocast (the search rungs use bf16; rung 2 is fp32), eager and graph-captured.
 
     python bench/ppo_update.py [--sizes 32,128,256] [--minibatch 4096]
 """
@@ -24,8 +24,10 @@ def main():
     a = ap.parse_args(); device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(machine_info())
     for P in (int(x) for x in a.sizes.split(",")):
-        for ac in (False, True):
-            tag = "bf16" if ac else "fp32"
+        for ac, graphed in ((False, False), (True, False), (False, True), (True, True)):
+            tag = ("bf16" if ac else "fp32") + ("_graphed" if graphed else "")
+            if graphed and device.type != "cuda":
+                continue
             try:
                 tk = GenTask(TR.Layout("L1"), "slip", P * a.n, 0, device)
                 env = PopEnv(tk, P, a.n); ppo = PopPPO(P, device, autocast=ac); obs = env.reset()
@@ -34,15 +36,15 @@ def main():
                 state = {"obs": obs}
 
                 def one():
-                    state["obs"], _ = ppo.update(env, state["obs"], rollout=a.rollout, epochs=4, minibatch=a.minibatch, gen=gen)
+                    state["obs"], _ = ppo.update(env, state["obs"], rollout=a.rollout, epochs=4, minibatch=a.minibatch, gen=gen, graphed=graphed)
 
                 t = timeit(one, warmup=1, iters=3)
-                m = dict(P=P, n_envs=a.n, rollout=a.rollout, minibatch=a.minibatch, autocast=ac, s_per_update=t["median"],
+                m = dict(P=P, n_envs=a.n, rollout=a.rollout, minibatch=a.minibatch, autocast=ac, graphed=graphed, s_per_update=t["median"],
                          genome_updates_per_s=P / t["median"], env_steps_per_s=P * a.n * a.rollout / t["median"], peak_mb=peak_mb())
                 record("ppo_update", f"P{P}_{tag}", m)
                 print(f"P={P:4d} {tag}: {m['s_per_update']:.2f} s/update  {m['genome_updates_per_s']:.0f} genome-updates/s  peak {m['peak_mb']} MB")
             except torch.cuda.OutOfMemoryError:
-                record("ppo_update", f"P{P}_{tag}", dict(P=P, autocast=ac, oom=True)); print(f"P={P} {tag}: OOM"); torch.cuda.empty_cache()
+                record("ppo_update", f"P{P}_{tag}", dict(P=P, autocast=ac, graphed=graphed, oom=True)); print(f"P={P} {tag}: OOM"); torch.cuda.empty_cache()
             del env, ppo
 
 

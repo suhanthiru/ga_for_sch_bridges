@@ -45,3 +45,16 @@ quiet-machine row above (34.3 s) predates the change; the bench records both row
 The graphed trainer is deterministic from the seed (tests/test_diffusion_graph.py) and
 is what the search rungs use from the next tranche on; the tranche running now is pinned
 to its worktree and keeps the eager trainer.
+
+## Addendum 2026-09-13: PPO rollout and update graph-captured
+
+`sb/rl/pop_ppo.py`: the whole 32-step rollout (env steps, policy forwards, GAE, batch
+assembly) is one CUDA graph and a minibatch gradient step another, replayed per
+minibatch with the epoch's permutation copied into a static index buffer; the
+environment state lives in fixed buffers and the user generators are registered with
+the graphs, so a graphed run is reproducible from its seed (tests/test_pop_ppo.py).
+Residual and learned-noise placements wrap a Python base controller and keep the eager
+loop. Measured with tranche 1 on the same GPU (rollout 32, minibatch 1024, bf16): the
+evaluator's setting P=1, n=120 went from 1.72 s to 0.14 s per update (a rung-0 PPO from
+~45 s to ~4 s); P=32, n=64 gives 173 genome-updates/s, above the 128 registered, on a
+contended GPU. `bench/ppo_update.py` now records eager and graphed rows.
