@@ -23,6 +23,18 @@ from sb.search.ladder import HOLD, after_rung0, due_for_validation, is_jump
 from sb.search.surrogate import Surrogate
 
 CHECKPOINT_EVERY = 100
+
+
+def _mem():
+    """GPU memory held by this process (allocated / reserved), for the log line: a run
+    whose reserved figure climbs across evaluations is leaking or fragmenting."""
+    try:
+        import torch
+        if torch.cuda.is_available() and torch.cuda.is_initialized():
+            return f" mem {torch.cuda.memory_allocated() / 1e9:.2f}/{torch.cuda.memory_reserved() / 1e9:.2f}GB"
+    except Exception:
+        pass
+    return ""
 # the control searches (SEARCH_PLAN 5.8): proposals come from the filtered view of the same
 # frozen grammar, rows carry the full grammar's hash and the control's name
 CONTROLS = {"none": (None, None), "no_bridge": (NO_BRIDGE, "bridge"), "no_rl": (NO_RL, "rl")}
@@ -158,7 +170,7 @@ class Search:
         r = self.evaluate(g, desc, 0, 0, self.G)
         row = self._row(g, desc, cell, 0, 0, r)
         self.log(f"eval {self.n_evals} r0 cell {cell} {g.provenance.algorithm or self.algorithm}/{g.provenance.op or 'seed'} "
-                 f"fitness {r.get('fitness', float('nan')):.3f} valid {r.get('valid')} {time.time() - t0:.0f}s  {g.dsl()[:120]}")
+                 f"fitness {r.get('fitness', float('nan')):.3f} valid {r.get('valid')} {time.time() - t0:.0f}s{_mem()}  {g.dsl()[:120]}")
         improved = False
         elite = self.map.elite.get(cell); elite_f = elite["fitness"] if elite else None
         if r["valid"] and not r.get("quarantined", False) and after_rung0(r["fitness"], elite_f).rung == 1:

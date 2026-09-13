@@ -38,8 +38,15 @@ bash bench/run_all.sh                    # throughput pilot on a quiet GPU; then
 python -m sb.cli audit                   # every family's oracle against a 10x planner
 python -m sb.cli freeze --pilot          # component tests, then grammar_pilot/manifest.json
 python search.py --pilot --budget 1000 --out results/search/pilot_t1   # a search tranche
+python search.py --pilot --budget 1000 --control no_bridge             # a control search (no_bridge | no_rl; --algorithm random)
 python -m sb.cli report search --pilot --root results/search/pilot_t1  # interim report
+python -m sb.cli report why --root results/search/pilot_t1             # the "why" model over validated bridge rows
 ```
+
+Long runs go from a git worktree (`git worktree add ../ga_wt HEAD`) with `SB_RESULTS` and
+`SB_DATA` pointing back at this checkout, launched with `python -u`, so edits here never
+change a running search; a frozen manifest refuses to run from a checkout whose component
+sources drifted, and reports only warn.
 
 ## Where things stand
 
@@ -48,4 +55,7 @@ python -m sb.cli report search --pilot --root results/search/pilot_t1  # interim
 - Pilot bench (0.4): environment step and grid bridges pass by orders of magnitude;
   neural per-mutant bridges and population PPO are pruned per the rule (PLAN_CHANGES).
 - Environment family E1-E8 behind one interface, every oracle audited; grammar frozen
-  for the pilot; search tranche 1 running.
+  for the pilot (hash in SEARCH_PLAN 2.10); search tranche 1 running on the graph-captured
+  trainers (diffusion 7x, PPO 6-12x faster than eager; findings/pilot.md addenda).
+- Control searches, the why model and the clause table are in place for the pilot's
+  analysis (SEARCH_PLAN 5.8, 7.1).
