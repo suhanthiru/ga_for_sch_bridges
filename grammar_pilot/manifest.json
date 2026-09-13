@@ -1010,8 +1010,8 @@
    true
   ]
  },
- "frozen": "2026-09-13 18:02:36",
- "hash": "ef0314e95a24074f",
+ "frozen": "2026-09-13 18:16:46",
+ "hash": "fbdc81b728f586f2",
  "innovation": [
   [
    [
@@ -1224,34 +1224,10 @@
   [
    [
     "root",
-    "adapt",
-    "adapt.none"
-   ],
-   26
-  ],
-  [
-   [
-    "root",
-    "augment",
-    "augment.noised"
-   ],
-   27
-  ],
-  [
-   [
-    "root",
-    "augment",
-    "augment.pd_rollouts"
-   ],
-   28
-  ],
-  [
-   [
-    "root",
     "controller",
     "controller.bridge_drift"
    ],
-   29
+   26
   ],
   [
    [
@@ -1259,7 +1235,7 @@
     "controller",
     "controller.diffusion"
    ],
-   30
+   27
   ],
   [
    [
@@ -1267,7 +1243,7 @@
     "controller",
     "controller.grid_bridge"
    ],
-   31
+   28
   ],
   [
    [
@@ -1275,7 +1251,7 @@
     "controller",
     "controller.pd"
    ],
-   32
+   29
   ],
   [
    [
@@ -1283,7 +1259,7 @@
     "controller",
     "controller.ppo"
    ],
-   33
+   30
   ],
   [
    [
@@ -1291,71 +1267,7 @@
     "controller",
     "controller.rl_residual"
    ],
-   34
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.dart"
-   ],
-   35
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.demos"
-   ],
-   36
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.gc_diffusion"
-   ],
-   37
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.mppi_rollouts"
-   ],
-   38
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.oracle_rollouts"
-   ],
-   39
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.pd_relabel"
-   ],
-   40
-  ],
-  [
-   [
-    "root",
-    "data",
-    "data.pd_rollouts"
-   ],
-   41
-  ],
-  [
-   [
-    "root",
-    "estimator",
-    "estimator.ekf"
-   ],
-   42
+   31
   ],
   [
    [
@@ -1363,7 +1275,7 @@
     "manifold",
     "manifold.flat"
    ],
-   43
+   32
   ],
   [
    [
@@ -1371,7 +1283,7 @@
     "manifold",
     "manifold.se2"
    ],
-   44
+   33
   ],
   [
    [
@@ -1379,7 +1291,7 @@
     "noise",
     "noise.fixed"
    ],
-   45
+   34
   ],
   [
    [
@@ -1387,7 +1299,7 @@
     "noise",
     "noise.per_skill"
    ],
-   46
+   35
   ],
   [
    [
@@ -1395,47 +1307,7 @@
     "noise",
     "noise.rl"
    ],
-   47
-  ],
-  [
-   [
-    "root",
-    "planner",
-    "planner.mppi"
-   ],
-   48
-  ],
-  [
-   [
-    "root",
-    "planner",
-    "planner.spline"
-   ],
-   49
-  ],
-  [
-   [
-    "root",
-    "reference",
-    "reference.geodesic"
-   ],
-   50
-  ],
-  [
-   [
-    "root",
-    "reference",
-    "reference.nearest_demo"
-   ],
-   51
-  ],
-  [
-   [
-    "root",
-    "reference",
-    "reference.spline"
-   ],
-   52
+   36
   ],
   [
    [
@@ -1443,7 +1315,7 @@
     "safety",
     "safety.clip"
    ],
-   53
+   37
   ],
   [
    [
@@ -1451,7 +1323,7 @@
     "safety",
     "safety.none"
    ],
-   54
+   38
   ],
   [
    [
@@ -1459,7 +1331,7 @@
     "seam",
     "seam.fixed_clock"
    ],
-   55
+   39
   ],
   [
    [
@@ -1467,7 +1339,7 @@
     "seam",
     "seam.marginal_cloud"
    ],
-   56
+   40
   ],
   [
    [
@@ -1475,15 +1347,7 @@
     "seam",
     "seam.waypoint"
    ],
-   57
-  ],
-  [
-   [
-    "root",
-    "time_split",
-    "time_split.equal"
-   ],
-   58
+   41
   ],
   [
    [
@@ -1491,7 +1355,7 @@
     "trigger",
     "trigger.bridge_disagreement"
    ],
-   59
+   42
   ],
   [
    [
@@ -1499,39 +1363,15 @@
     "trigger",
     "trigger.distance"
    ],
-   60
-  ],
-  [
-   [
-    "root",
-    "value",
-    "value.distance"
-   ],
-   61
+   43
   ]
  ],
  "n_random_seeds": 200,
  "pilot": true,
  "slots": {
-  "adapt": [
-   "adapt",
-   true
-  ],
-  "augment": [
-   "augment",
-   true
-  ],
   "controller": [
    "controller",
    false
-  ],
-  "data": [
-   "data",
-   true
-  ],
-  "estimator": [
-   "estimator",
-   true
   ],
   "manifold": [
    "manifold",
@@ -1539,14 +1379,6 @@
   ],
   "noise": [
    "noise",
-   true
-  ],
-  "planner": [
-   "planner",
-   true
-  ],
-  "reference": [
-   "reference",
    true
   ],
   "safety": [
@@ -1557,17 +1389,10 @@
    "seam",
    true
   ],
-  "time_split": [
-   "time_split",
-   true
-  ],
   "trigger": [
    "trigger",
    true
-  ],
-  "value": [
-   "value",
-   true
   ]
- }
+ },
+ "source": "25e661ea9b86c9ec"
 }
