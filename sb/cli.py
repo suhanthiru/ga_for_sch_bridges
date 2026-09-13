@@ -93,8 +93,7 @@ def cmd_audit(a):
     import torch
     rows = audit(n=a.n, device=torch.device(a.device) if a.device else None, ids=a.ids.split(",") if a.ids else None)
     out = Path(settings.ROOT / "findings" / "oracle_audit.md"); out.parent.mkdir(exist_ok=True)
-    out.write_text(render(rows, a.n), encoding="utf-8", newline="
-"); print("->", out)
+    out.write_text(render(rows, a.n), encoding="utf-8", newline="\n"); print("->", out)
 
 
 def cmd_freeze(a):
