@@ -109,7 +109,8 @@ def build_tables(out_dir, prior_dir, diag_path=None):
         me += fam.get(k, [])
     T["mineffect"] = ST.report_table(me, "contrast") if me else "not run\n"
     tables = "\n".join(f"### {k}\n\n{v}" for k, v in T.items())
-    Path(out_dir, "tables.md").write_text(tables, encoding="utf-8")
+    Path(out_dir, "tables.md").write_text(tables, encoding="utf-8", newline="
+")
     return T, dec
 
 
@@ -119,4 +120,5 @@ def fill_findings(T, path=None, commit=""):
     for k, v in T.items():
         txt = re.sub(rf"(<!-- tables:{k} -->\n).*?(<!-- /tables:{k} -->)", lambda m: m.group(1) + v + m.group(2), txt, flags=re.S)
     txt = re.sub(r"Commit: .*?\.", f"Commit: {commit}.", txt, count=1)
-    path.write_text(txt, encoding="utf-8")
+    path.write_text(txt, encoding="utf-8", newline="
+")

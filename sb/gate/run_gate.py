@@ -36,29 +36,38 @@ def sha256(path):
     return h.hexdigest()
 
 
+def dirty():
+    """Uncommitted changes outside results/ (shards and timing files are written by the run itself)."""
+    return git("status", "--porcelain", "--", ".", ":!results")
+
+
 def preflight(out_dir, allow_dirty=False, skip_tests=False, extra=None):
     out_dir = Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
-    if git("status", "--porcelain") and not allow_dirty:
+    if dirty() and not allow_dirty:
         raise SystemExit("working tree is dirty; commit first or pass --allow-dirty")
     if not skip_tests:
         r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-m", "not slow"], cwd=settings.ROOT, capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit("tests are red; refusing to run the gate\n" + r.stdout[-2000:])
-    prov = dict(commit=git("rev-parse", "HEAD"), dirty=bool(git("status", "--porcelain")), python=sys.version.split()[0],
+    prov = dict(commit=git("rev-parse", "HEAD"), dirty=bool(dirty()), python=sys.version.split()[0],
                 torch=torch.__version__, cuda=torch.version.cuda, gpu=torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
                 n_demo=CL.N_DEMO, gen_mult=CL.GEN_MULT, steps=CL.STEPS, n_eval=CL.N_EVAL, time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 demos={l: sha256(settings.demo_path(l)) for l in CL.LAYOUTS if settings.demo_path(l).exists()})
     prov.update(extra or {})
     p = out_dir / "provenance.json"
     old = json.loads(p.read_text()) if p.exists() else []
-    old.append(prov); p.write_text(json.dumps(old, indent=1))
+    old.append(prov); p.write_text(json.dumps(old, indent=1) + "
+", newline="
+")
     return prov
 
 
 def _timing(out_dir, key, secs):
     p = Path(out_dir) / "timing.json"
     old = json.loads(p.read_text()) if p.exists() else {}
-    old[key] = round(secs, 1); p.write_text(json.dumps(old, indent=1))
+    old[key] = round(secs, 1); p.write_text(json.dumps(old, indent=1) + "
+", newline="
+")
 
 
 def run_seed(seed, out_dir, models_dir, cells=None, steps=CL.STEPS, n_eval=CL.N_EVAL, n_demo=CL.N_DEMO, mult=CL.GEN_MULT,
