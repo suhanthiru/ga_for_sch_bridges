@@ -56,18 +56,14 @@ def preflight(out_dir, allow_dirty=False, skip_tests=False, extra=None):
     prov.update(extra or {})
     p = out_dir / "provenance.json"
     old = json.loads(p.read_text()) if p.exists() else []
-    old.append(prov); p.write_text(json.dumps(old, indent=1) + "
-", newline="
-")
+    old.append(prov); p.write_text(json.dumps(old, indent=1) + "\n", newline="\n")
     return prov
 
 
 def _timing(out_dir, key, secs):
     p = Path(out_dir) / "timing.json"
     old = json.loads(p.read_text()) if p.exists() else {}
-    old[key] = round(secs, 1); p.write_text(json.dumps(old, indent=1) + "
-", newline="
-")
+    old[key] = round(secs, 1); p.write_text(json.dumps(old, indent=1) + "\n", newline="\n")
 
 
 def run_seed(seed, out_dir, models_dir, cells=None, steps=CL.STEPS, n_eval=CL.N_EVAL, n_demo=CL.N_DEMO, mult=CL.GEN_MULT,

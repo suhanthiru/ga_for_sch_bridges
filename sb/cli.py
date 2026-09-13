@@ -51,9 +51,7 @@ def cmd_diag(a):
     out["seconds"] = round(time.time() - t0, 1)
     settings.GATE.mkdir(parents=True, exist_ok=True)
     p = settings.GATE / f"diag_relabel{'' if a.cost == 'greedy' else '_' + a.cost}.json"
-    p.write_text(json.dumps(out, indent=1) + "
-", newline="
-"); print(json.dumps(out, indent=1)); print("->", p)
+    p.write_text(json.dumps(out, indent=1) + "\n", newline="\n"); print(json.dumps(out, indent=1)); print("->", p)
 
 
 def cmd_dr_check(a):
