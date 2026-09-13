@@ -28,11 +28,14 @@ class EliteMap:
         self.elite = {}                    # cell -> dict(gid, fitness, eval_id, since_gen, desc)
 
     @classmethod
-    def load_or_make(cls, path, dim, n_cells, seed=0):
+    def load_or_make(cls, path, dim, n_cells, seed=0, fixed=None):
+        """CVT centroids saved at `path`; with `fixed` (a list of descriptor vectors) the map's
+        cells are exactly those vectors, which is what rung 0 uses for its eight fixed cells."""
         path = Path(path)
         if path.exists():
             return cls(np.load(path))
-        C = cvt_centroids(dim, n_cells, seed); path.parent.mkdir(parents=True, exist_ok=True); np.save(path, C)
+        C = np.asarray(fixed, dtype=float) if fixed else cvt_centroids(dim, n_cells, seed)
+        path.parent.mkdir(parents=True, exist_ok=True); np.save(path, C)
         return cls(C)
 
     def cell_of(self, desc):

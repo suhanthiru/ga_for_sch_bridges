@@ -125,3 +125,17 @@ def test_innovation_crossover_and_speciation_distance(reg):
     assert 0.0 <= G.compat_distance(a, m) < 1.0
     r = G.mutate(G.mutate(a, rng, "replace"), rng, "fill")
     assert G.compat_distance(a, r) >= G.compat_distance(a, m) or G.compat_distance(a, r) > 0
+
+
+def test_rl_never_nests_inside_rl(reg):
+    G = Grammar(reg); rng = np.random.default_rng(9)
+    for _ in range(200):
+        g = G.random_genome(rng, 1.0)
+        for e in g.edges:
+            if e.parent != ROOT:
+                assert not (G.spec(g.node(e.child).comp).tag == "rl" and G.spec(g.node(e.parent).comp).tag == "rl")
+        m = G.mutate(g, rng, "replace"); assert G.validate(m) == []
+    bad = Genome((Node("a", "manifold.se2"), Node("b", "controller.rl_residual", (("steps", 2),)), Node("c", "controller.rl_residual", (("steps", 3),)),
+                  Node("d", "controller.pd", (("kp", 6.0),))),
+                 (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge("b", "base", "c"), Edge("c", "base", "d")))
+    assert any("inside RL" in v for v in G.validate(bad))

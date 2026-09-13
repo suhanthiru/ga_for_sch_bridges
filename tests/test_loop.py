@@ -60,3 +60,13 @@ def test_ladder_rung1_seeds_the_map_and_rung2_validates(tmp_path):
     assert s.validated and all(v["fitness"] is not None for v in s.validated.values())
     assert (df.rung == 2).sum() >= 2 * len(s.validated)
     st = s.state(); assert "validated" in st
+
+
+def test_fixed_cells_become_the_map(tmp_path):
+    from sb.search.cells import rung0_cells
+    G = Grammar(load_all()); seeds = _seeds(G, 3)
+    fixed = [c["vector"] for c in rung0_cells()]
+    s = Search(G, tmp_path / "f", seeds, dummy_evaluate, cells=fixed, log=lambda m: None)
+    assert s.map.n == 8 and all(s.map.cell_of(v) == i for i, v in enumerate(fixed))
+    s.run(budget=30, stop_after_flat=10_000)
+    assert set(s.archive.frame().cell) <= set(range(8))

@@ -46,8 +46,11 @@ class Grammar:
         self._innov = None
 
     # ------------------------------------------------------------- options
-    def options(self, slot_type):
-        return [s for s in self.registry.values() if slot_type in s.slots and not s.disabled and (self.filt is None or self.filt(s))]
+    def options(self, slot_type, parent_tag="none"):
+        """Components that can fill a slot of `slot_type`; an RL component never sits inside
+        another RL component's sub-slot (a residual on an untrained recipe has no base)."""
+        return [s for s in self.registry.values() if slot_type in s.slots and not s.disabled and (self.filt is None or self.filt(s))
+                and not (parent_tag == "rl" and s.tag == "rl")]
 
     def spec(self, key):
         return self.registry[key]
@@ -124,6 +127,8 @@ class Grammar:
             cs = self.registry.get(g.node(e.child).comp)
             if cs is not None and ss.type not in cs.slots:
                 v.append(f"{cs.key} cannot fill slot {e.slot} ({ss.type})")
+            if cs is not None and pc is not None and cs.tag == "rl" and self.spec(pc).tag == "rl":
+                v.append(f"{cs.key} is an RL component inside RL component {pc}")
             if cs is not None and cs.oracle != "none" and e.parent == ROOT and e.slot not in ORACLE_SLOTS:
                 v.append(f"{cs.key} reads the oracle and sits outside the data/value slots")
         for slot, ss in self.root_slots.items():
@@ -158,7 +163,7 @@ class Grammar:
     def _fill(self, nodes, edges, parent_nid, parent_comp, slot, ss, rng, depth, p_fill):
         """Place a component in `slot` at level depth + 1 (root children are level 1)."""
         level = depth + 1
-        opts = self.options(ss.type)
+        opts = self.options(ss.type, self.spec(parent_comp).tag if parent_comp else "none")
         if level >= MAX_DEPTH:                      # the last level: only components with no required sub-slots
             opts = [o for o in opts if not any(not sub.optional for sub in o.sub_slots.values())]
         if not opts or level > MAX_DEPTH or (ss.optional and (level >= MAX_DEPTH or rng.random() > p_fill)):
@@ -194,7 +199,7 @@ class Grammar:
         elif op == "replace" and nodes:
             e = edges[int(rng.integers(len(edges)))]
             pc = None if e.parent == ROOT else g.node(e.parent).comp
-            ss = self.slot_spec(pc, e.slot); opts = [o for o in self.options(ss.type) if o.key != g.node(e.child).comp]
+            ss = self.slot_spec(pc, e.slot); opts = [o for o in self.options(ss.type, self.spec(pc).tag if pc else "none") if o.key != g.node(e.child).comp]
             if opts:
                 s = opts[int(rng.integers(len(opts)))]
                 old = g.node(e.child)

@@ -47,7 +47,7 @@ class Search:
         self.G, self.root, self.evaluate, self.log = grammar, Path(root), evaluate, log
         self.cells = [list(map(float, c)) for c in cells] if cells else None
         self.archive = Archive(self.root)
-        self.map = EliteMap.load_or_make(self.root / "cvt_centroids.npy", len(AXES), n_cells, cvt_seed)
+        self.map = EliteMap.load_or_make(self.root / "cvt_centroids.npy", len(AXES), n_cells, cvt_seed, fixed=cells)
         self.seeds = list(seeds); self.seed_set = SeedSet.from_genomes(self.seeds)
         self.rng = np.random.default_rng(seed); self.algorithm = algorithm
         self.gen, self.n_evals, self.pending = 0, 0, list(range(len(self.seeds)))
