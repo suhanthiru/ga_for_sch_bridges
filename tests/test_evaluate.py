@@ -113,3 +113,14 @@ def test_rl_noise_placement_trains_around_the_controller(cpu, small_demos, tmp_p
     r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
     assert r.valid, r.invalid_reason + r.error
     assert r.per_disturbance["none"] > 0.5
+
+
+def test_cell_from_vector_maps_bins_to_the_evaluator():
+    from sb.search.cells import cell_from_vector, rung0_cells
+    for c in rung0_cells():
+        cell = cell_from_vector(c["vector"], c["cell"].cell_id)
+        assert cell.env == c["env"] and cell.descriptor["slip_scale"] == c["values"]["slip_scale"]
+    import pytest
+    from sb.envs.family import AXES, descriptor_vector
+    with pytest.raises(ValueError):
+        cell_from_vector(descriptor_vector(dict(env="E4")))

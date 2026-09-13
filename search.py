@@ -16,9 +16,8 @@ from sb.search.loop import Search, dummy_evaluate
 
 
 def real_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
-    from sb.envs.family import AXES
-    d = dict(zip(AXES, cell_desc))
-    cell = Cell(cell_id=0, layout="L1", descriptor={})
+    from sb.search.cells import cell_from_vector
+    cell = cell_from_vector(cell_desc)
     r = evaluate(genome, cell, rung, seed, grammar, weights=weights)
     return r.row()
 
@@ -35,7 +34,9 @@ def main():
     gdir = settings.ROOT / ("grammar_pilot" if a.pilot else "grammar")
     seeds = [Genome.from_json(l) for l in (gdir / "seeds.jsonl").read_text().splitlines() if l.strip()]
     root = settings.RESULTS / ("search_dummy" if a.dummy else "search") / a.algorithm
-    s = Search(G, root, seeds, dummy_evaluate if a.dummy else real_evaluate, n_cells=a.cells, algorithm=a.algorithm)
+    from sb.search.cells import rung0_cells
+    fixed = [c["vector"] for c in rung0_cells()]                 # rung 0 proposes on the eight fixed cells
+    s = Search(G, root, seeds, dummy_evaluate if a.dummy else real_evaluate, n_cells=a.cells, algorithm=a.algorithm, cells=fixed)
     if a.resume:
         s.resume()
     s.run(a.budget)

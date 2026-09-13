@@ -389,3 +389,9 @@ fitness, secondary metrics and algorithm; nothing is deleted, only tagged.
 After the freeze a fresh session receives `sb/envs/base.py`, `sb/envs/family.py` and the
 section-1 table, nothing else, and designs E9 and E10. Their first archive rows carry the
 freeze date; any earlier row invalidates the "why" model.
+
+### 2.10 Pilot manifest
+
+Frozen 2026-09-13 as `grammar_pilot/` (36 components, hash ef0314e95a24074f, 200 random
+seed genomes). It is the pilot's grammar only; the main manifest is frozen separately
+after stage C, and the "never extended mid-search" rule applies per manifest.

@@ -41,8 +41,11 @@ def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
 
 
 class Search:
-    def __init__(self, grammar, root, seeds, evaluate, n_cells=2000, cvt_seed=0, algorithm="mapelites", seed=0, log=print):
+    def __init__(self, grammar, root, seeds, evaluate, n_cells=2000, cvt_seed=0, algorithm="mapelites", seed=0, log=print, cells=None):
+        """cells: optional list of descriptor vectors the search may propose (rung 0 uses the
+        eight fixed cells); None draws uniformly over the bins."""
         self.G, self.root, self.evaluate, self.log = grammar, Path(root), evaluate, log
+        self.cells = [list(map(float, c)) for c in cells] if cells else None
         self.archive = Archive(self.root)
         self.map = EliteMap.load_or_make(self.root / "cvt_centroids.npy", len(AXES), n_cells, cvt_seed)
         self.seeds = list(seeds); self.seed_set = SeedSet.from_genomes(self.seeds)
@@ -58,6 +61,8 @@ class Search:
 
     # ---------------------------------------------------------------- cells
     def random_cell_desc(self):
+        if self.cells:
+            return list(self.cells[int(self.rng.integers(len(self.cells)))])
         return [float(self.rng.integers(0, 4)) / 3 for _ in AXES]
 
     # ----------------------------------------------------------------- step

@@ -1,0 +1,1573 @@
+{
+ "components": [
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "adapt.none",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "adapt"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "augment.noised",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ]
+   },
+   "slots": [
+    "augment"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_augment"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "augment.pd_rollouts",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ]
+   },
+   "slots": [
+    "augment"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_augment"
+  },
+  {
+   "axes": {
+    "coupling": "param",
+    "family": "dynamic_sb",
+    "marginal": "hard_two",
+    "reference": "ou",
+    "representation": "neural_drift",
+    "role": "bridge_drift"
+   },
+   "disabled": "",
+   "key": "controller.bridge_drift",
+   "oracle": "none",
+   "params": {
+    "coupling": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      "independent",
+      "demo_paired",
+      "ot",
+      "minibatch_ot"
+     ]
+    ],
+    "eps": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ],
+    "ipf": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      0,
+      1,
+      2,
+      5
+     ]
+    ],
+    "reference": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      "brownian",
+      "unicycle",
+      "slip"
+     ]
+    ],
+    "sampler": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      "sde_em",
+      "ode_heun",
+      "ode_rk4"
+     ]
+    ],
+    "steps": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      8,
+      16,
+      32,
+      64
+     ]
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {
+    "noise": [
+     "noise",
+     true
+    ]
+   },
+   "tag": "bridge",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "controller.diffusion",
+   "oracle": "none",
+   "params": {
+    "hidden": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      128,
+      256
+     ]
+    ],
+    "steps": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      2000,
+      8000
+     ]
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {
+    "data": [
+     "data",
+     false
+    ]
+   },
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {
+    "coupling": "independent",
+    "family": "entropic_ot",
+    "marginal": "hard_two",
+    "reference": "heat_kernel",
+    "representation": "grid_sinkhorn",
+    "role": "bridge_drift"
+   },
+   "disabled": "",
+   "key": "controller.grid_bridge",
+   "oracle": "none",
+   "params": {
+    "eps": [
+     "log",
+     0.002,
+     0.05,
+     []
+    ],
+    "grid": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      32,
+      64
+     ]
+    ],
+    "iters": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      50,
+      200
+     ]
+    ],
+    "kp_heading": [
+     "log",
+     1.0,
+     10.0,
+     []
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {},
+   "tag": "bridge",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "controller.pd",
+   "oracle": "none",
+   "params": {
+    "kp": [
+     "log",
+     1.0,
+     30.0,
+     []
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {
+    "reference": [
+     "reference",
+     true
+    ]
+   },
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "controller.ppo",
+   "oracle": "none",
+   "params": {
+    "clip": [
+     "lin",
+     0.1,
+     0.3,
+     []
+    ],
+    "ent": [
+     "log",
+     0.0001,
+     0.01,
+     []
+    ],
+    "lr": [
+     "log",
+     0.0001,
+     0.001,
+     []
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {
+    "data": [
+     "data",
+     false
+    ]
+   },
+   "tag": "rl",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "controller.rl_residual",
+   "oracle": "none",
+   "params": {
+    "bound": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      0.1,
+      0.3,
+      0.6
+     ]
+    ],
+    "clip": [
+     "lin",
+     0.1,
+     0.3,
+     []
+    ],
+    "ent": [
+     "log",
+     0.0001,
+     0.01,
+     []
+    ],
+    "lr": [
+     "log",
+     0.0001,
+     0.001,
+     []
+    ]
+   },
+   "slots": [
+    "controller"
+   ],
+   "sub_slots": {
+    "base": [
+     "controller",
+     false
+    ]
+   },
+   "tag": "rl",
+   "test": "tests/components/test_core_set.py::test_controllers"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.dart",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.demos",
+   "oracle": "train_data",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.gc_diffusion",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.mppi_rollouts",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.oracle_rollouts",
+   "oracle": "train_data",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {
+    "role": "pd_relabel"
+   },
+   "disabled": "",
+   "key": "data.pd_relabel",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "bridge",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "data.pd_rollouts",
+   "oracle": "none",
+   "params": {
+    "mult": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      4,
+      16
+     ]
+    ],
+    "n_demo": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      1,
+      5,
+      20,
+      100
+     ]
+    ]
+   },
+   "slots": [
+    "data"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_data"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "estimator.ekf",
+   "oracle": "none",
+   "params": {
+    "window": [
+     "int",
+     10,
+     100,
+     []
+    ]
+   },
+   "slots": [
+    "estimator"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "manifold.flat",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "manifold"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_manifolds"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "manifold.se2",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "manifold"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_manifolds"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "noise.fixed",
+   "oracle": "none",
+   "params": {
+    "sigma": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ]
+   },
+   "slots": [
+    "noise"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "noise.per_skill",
+   "oracle": "none",
+   "params": {
+    "s0": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ],
+    "s1": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ],
+    "s2": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ]
+   },
+   "slots": [
+    "noise"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "noise.rl",
+   "oracle": "none",
+   "params": {
+    "clip": [
+     "lin",
+     0.1,
+     0.3,
+     []
+    ],
+    "ent": [
+     "log",
+     0.0001,
+     0.01,
+     []
+    ],
+    "lr": [
+     "log",
+     0.0001,
+     0.001,
+     []
+    ]
+   },
+   "slots": [
+    "noise"
+   ],
+   "sub_slots": {},
+   "tag": "rl",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "planner.mppi",
+   "oracle": "none",
+   "params": {
+    "H": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      10,
+      30,
+      60
+     ]
+    ],
+    "K": [
+     "choice",
+     0.0,
+     1.0,
+     [
+      64,
+      200,
+      512
+     ]
+    ],
+    "lam": [
+     "log",
+     0.001,
+     0.1,
+     []
+    ]
+   },
+   "slots": [
+    "planner"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_planner"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "planner.spline",
+   "oracle": "none",
+   "params": {
+    "n_knots": [
+     "int",
+     2,
+     8,
+     []
+    ]
+   },
+   "slots": [
+    "planner"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_planner"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "reference.geodesic",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "reference"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_references"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "reference.nearest_demo",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "reference"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_references"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "reference.spline",
+   "oracle": "none",
+   "params": {
+    "n_knots": [
+     "int",
+     2,
+     8,
+     []
+    ]
+   },
+   "slots": [
+    "reference"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_references"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "safety.clip",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "safety"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "safety.none",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "safety"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "seam.fixed_clock",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "seam"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_seams"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "seam.marginal_cloud",
+   "oracle": "none",
+   "params": {
+    "width": [
+     "log",
+     0.25,
+     4.0,
+     []
+    ]
+   },
+   "slots": [
+    "seam"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_seams"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "seam.waypoint",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "seam"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_seams"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "time_split.equal",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "time_split"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {
+    "role": "bridge_disagreement"
+   },
+   "disabled": "",
+   "key": "trigger.bridge_disagreement",
+   "oracle": "none",
+   "params": {
+    "thr": [
+     "log",
+     0.05,
+     1.0,
+     []
+    ]
+   },
+   "slots": [
+    "trigger"
+   ],
+   "sub_slots": {},
+   "tag": "bridge",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "trigger.distance",
+   "oracle": "none",
+   "params": {
+    "thr": [
+     "log",
+     0.02,
+     0.5,
+     []
+    ]
+   },
+   "slots": [
+    "trigger"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  },
+  {
+   "axes": {},
+   "disabled": "",
+   "key": "value.distance",
+   "oracle": "none",
+   "params": {},
+   "slots": [
+    "value"
+   ],
+   "sub_slots": {},
+   "tag": "none",
+   "test": "tests/components/test_core_set.py::test_small_slots"
+  }
+ ],
+ "filter": "none",
+ "flags": {
+  "action_space_bridge": [
+   false,
+   true
+  ],
+  "bridge_of_bridges": [
+   false,
+   true
+  ],
+  "cost_in": [
+   "objective",
+   "reference"
+  ],
+  "density_gating": [
+   false,
+   true
+  ],
+  "drift_blend": [
+   false,
+   true
+  ],
+  "learned_intermediates": [
+   false,
+   true
+  ],
+  "marginal_annealing": [
+   false,
+   true
+  ],
+  "per_skill_eps": [
+   false,
+   true
+  ],
+  "sampling": [
+   "sde",
+   "ode"
+  ],
+  "time_reversed": [
+   false,
+   true
+  ]
+ },
+ "frozen": "2026-09-13 15:29:40",
+ "hash": "ef0314e95a24074f",
+ "innovation": [
+  [
+   [
+    "controller.bridge_drift",
+    "noise",
+    "noise.fixed"
+   ],
+   0
+  ],
+  [
+   [
+    "controller.bridge_drift",
+    "noise",
+    "noise.per_skill"
+   ],
+   1
+  ],
+  [
+   [
+    "controller.bridge_drift",
+    "noise",
+    "noise.rl"
+   ],
+   2
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.dart"
+   ],
+   3
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.demos"
+   ],
+   4
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.gc_diffusion"
+   ],
+   5
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.mppi_rollouts"
+   ],
+   6
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.oracle_rollouts"
+   ],
+   7
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.pd_relabel"
+   ],
+   8
+  ],
+  [
+   [
+    "controller.diffusion",
+    "data",
+    "data.pd_rollouts"
+   ],
+   9
+  ],
+  [
+   [
+    "controller.pd",
+    "reference",
+    "reference.geodesic"
+   ],
+   10
+  ],
+  [
+   [
+    "controller.pd",
+    "reference",
+    "reference.nearest_demo"
+   ],
+   11
+  ],
+  [
+   [
+    "controller.pd",
+    "reference",
+    "reference.spline"
+   ],
+   12
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.dart"
+   ],
+   13
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.demos"
+   ],
+   14
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.gc_diffusion"
+   ],
+   15
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.mppi_rollouts"
+   ],
+   16
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.oracle_rollouts"
+   ],
+   17
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.pd_relabel"
+   ],
+   18
+  ],
+  [
+   [
+    "controller.ppo",
+    "data",
+    "data.pd_rollouts"
+   ],
+   19
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.bridge_drift"
+   ],
+   20
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.diffusion"
+   ],
+   21
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.grid_bridge"
+   ],
+   22
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.pd"
+   ],
+   23
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.ppo"
+   ],
+   24
+  ],
+  [
+   [
+    "controller.rl_residual",
+    "base",
+    "controller.rl_residual"
+   ],
+   25
+  ],
+  [
+   [
+    "root",
+    "adapt",
+    "adapt.none"
+   ],
+   26
+  ],
+  [
+   [
+    "root",
+    "augment",
+    "augment.noised"
+   ],
+   27
+  ],
+  [
+   [
+    "root",
+    "augment",
+    "augment.pd_rollouts"
+   ],
+   28
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.bridge_drift"
+   ],
+   29
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.diffusion"
+   ],
+   30
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.grid_bridge"
+   ],
+   31
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.pd"
+   ],
+   32
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.ppo"
+   ],
+   33
+  ],
+  [
+   [
+    "root",
+    "controller",
+    "controller.rl_residual"
+   ],
+   34
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.dart"
+   ],
+   35
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.demos"
+   ],
+   36
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.gc_diffusion"
+   ],
+   37
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.mppi_rollouts"
+   ],
+   38
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.oracle_rollouts"
+   ],
+   39
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.pd_relabel"
+   ],
+   40
+  ],
+  [
+   [
+    "root",
+    "data",
+    "data.pd_rollouts"
+   ],
+   41
+  ],
+  [
+   [
+    "root",
+    "estimator",
+    "estimator.ekf"
+   ],
+   42
+  ],
+  [
+   [
+    "root",
+    "manifold",
+    "manifold.flat"
+   ],
+   43
+  ],
+  [
+   [
+    "root",
+    "manifold",
+    "manifold.se2"
+   ],
+   44
+  ],
+  [
+   [
+    "root",
+    "noise",
+    "noise.fixed"
+   ],
+   45
+  ],
+  [
+   [
+    "root",
+    "noise",
+    "noise.per_skill"
+   ],
+   46
+  ],
+  [
+   [
+    "root",
+    "noise",
+    "noise.rl"
+   ],
+   47
+  ],
+  [
+   [
+    "root",
+    "planner",
+    "planner.mppi"
+   ],
+   48
+  ],
+  [
+   [
+    "root",
+    "planner",
+    "planner.spline"
+   ],
+   49
+  ],
+  [
+   [
+    "root",
+    "reference",
+    "reference.geodesic"
+   ],
+   50
+  ],
+  [
+   [
+    "root",
+    "reference",
+    "reference.nearest_demo"
+   ],
+   51
+  ],
+  [
+   [
+    "root",
+    "reference",
+    "reference.spline"
+   ],
+   52
+  ],
+  [
+   [
+    "root",
+    "safety",
+    "safety.clip"
+   ],
+   53
+  ],
+  [
+   [
+    "root",
+    "safety",
+    "safety.none"
+   ],
+   54
+  ],
+  [
+   [
+    "root",
+    "seam",
+    "seam.fixed_clock"
+   ],
+   55
+  ],
+  [
+   [
+    "root",
+    "seam",
+    "seam.marginal_cloud"
+   ],
+   56
+  ],
+  [
+   [
+    "root",
+    "seam",
+    "seam.waypoint"
+   ],
+   57
+  ],
+  [
+   [
+    "root",
+    "time_split",
+    "time_split.equal"
+   ],
+   58
+  ],
+  [
+   [
+    "root",
+    "trigger",
+    "trigger.bridge_disagreement"
+   ],
+   59
+  ],
+  [
+   [
+    "root",
+    "trigger",
+    "trigger.distance"
+   ],
+   60
+  ],
+  [
+   [
+    "root",
+    "value",
+    "value.distance"
+   ],
+   61
+  ]
+ ],
+ "n_random_seeds": 200,
+ "pilot": true,
+ "slots": {
+  "adapt": [
+   "adapt",
+   true
+  ],
+  "augment": [
+   "augment",
+   true
+  ],
+  "controller": [
+   "controller",
+   false
+  ],
+  "data": [
+   "data",
+   true
+  ],
+  "estimator": [
+   "estimator",
+   true
+  ],
+  "manifold": [
+   "manifold",
+   false
+  ],
+  "noise": [
+   "noise",
+   true
+  ],
+  "planner": [
+   "planner",
+   true
+  ],
+  "reference": [
+   "reference",
+   true
+  ],
+  "safety": [
+   "safety",
+   true
+  ],
+  "seam": [
+   "seam",
+   true
+  ],
+  "time_split": [
+   "time_split",
+   true
+  ],
+  "trigger": [
+   "trigger",
+   true
+  ],
+  "value": [
+   "value",
+   true
+  ]
+ }
+}
