@@ -116,7 +116,8 @@ class Search:
         lvl, dist = novelty(g, self.seed_set)
         row = dict(eval_id=f"{g.gid}-{cell}-r{rung}-s{seed}-{self.n_evals}", gid=g.gid, sid=g.sid, genome_json=g.to_json(), dsl=g.dsl(),
                    grammar_hash=self.G.hash, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
-                   cell=cell, novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)}, **r)
+                   cell=cell, novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)})
+        row.update({k: v for k, v in r.items() if k not in row})          # the loop's identifiers win over the evaluator's
         self.archive.append(row, genome=g)
         return row
 
