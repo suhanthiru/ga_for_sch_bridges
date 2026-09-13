@@ -18,14 +18,15 @@ def test_search_runs_checkpoints_and_resumes(tmp_path):
     for _ in range(2 * CHECKPOINT_EVERY + 37):          # two checkpoints plus 37 rows after the last one
         s1.step()
     s1.archive.flush()
-    n_rows = len(s1.archive.frame(include_excluded=True)); assert n_rows == 2 * CHECKPOINT_EVERY + 37
+    df1 = s1.archive.frame(include_excluded=True); n_rows = len(df1)
+    assert s1.n_evals == 2 * CHECKPOINT_EVERY + 37 and (df1.rung == 0).sum() == s1.n_evals and n_rows > s1.n_evals
     filled, mean = s1.map.filled(), s1.map.mean_fitness()
-    # a fresh process resumes from the verified checkpoint and replays the 37 later rows
+    # a fresh process resumes from the verified checkpoint and replays the rows written after it
     s2 = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=50, log=lambda m: None)
     assert s2.resume()
-    assert s2.n_evals == n_rows and s2.map.filled() == filled and abs(s2.map.mean_fitness() - mean) < 1e-9
+    assert s2.n_evals == s1.n_evals and s2.map.filled() == filled and abs(s2.map.mean_fitness() - mean) < 1e-9
     s2.step(); s2.archive.flush()
-    assert len(s2.archive.frame(include_excluded=True)) == n_rows + 1
+    assert (s2.archive.frame(include_excluded=True).rung == 0).sum() == n_rows - (n_rows - s1.n_evals) + 1
     assert (tmp_path / "s" / "cvt_centroids.npy").exists()
 
 
@@ -47,3 +48,15 @@ def test_cma_batches_appear_and_improve_structures(tmp_path):
     df = s.archive.frame()
     assert (df.algorithm == "cma_mae").sum() > 20 and s.emitters
     assert set(df[df.algorithm == "cma_mae"].sid) <= set(df.sid)
+
+
+def test_ladder_rung1_seeds_the_map_and_rung2_validates(tmp_path):
+    G = Grammar(load_all()); seeds = _seeds(G, 4)
+    s = Search(G, tmp_path / "l", seeds, dummy_evaluate, n_cells=15, log=lambda m: None)
+    s.rung_seeds = {1: (1, 2), 2: (10, 11)}
+    s.run(budget=80, stop_after_flat=10_000)
+    df = s.archive.frame()
+    assert set(df.rung) >= {0, 1} and (df.rung == 1).sum() >= 2
+    assert s.validated and all(v["fitness"] is not None for v in s.validated.values())
+    assert (df.rung == 2).sum() >= 2 * len(s.validated)
+    st = s.state(); assert "validated" in st

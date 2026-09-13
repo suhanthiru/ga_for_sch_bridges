@@ -18,6 +18,6 @@ def test_interim_report_from_a_dummy_search(tmp_path):
     cc, never = component_census(ef, list(G.root_slots), G)
     assert set(cc.component) & set(G.registry) and all(k in G.registry for k in never)
     ac = algorithm_census(s.archive.frame())
-    assert ac.evaluations.sum() == 150
+    assert ac.evaluations.sum() == len(s.archive.frame()) and (s.archive.frame().rung == 0).sum() == 150
     txt = interim(s, tmp_path / "interim.md", figure=tmp_path / "map.png")
     assert "Slot census" in txt and "Algorithm census" in txt and (tmp_path / "interim.md").exists()

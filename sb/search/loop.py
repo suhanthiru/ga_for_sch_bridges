@@ -18,6 +18,7 @@ from sb.envs.family import AXES
 from sb.search.algos.cma_emitter import CMAEmitter
 from sb.search.archive import Archive
 from sb.search.elites import EliteMap
+from sb.search.ladder import HOLD, after_rung0, due_for_validation, is_jump
 from sb.search.surrogate import Surrogate
 
 CHECKPOINT_EVERY = 100
@@ -30,10 +31,13 @@ def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
     from sb.search.evaluate import fitness_of
     h = int(genome.gid[:8], 16) ^ int(abs(hash(tuple(round(x, 3) for x in cell_desc))) % (1 << 30))
     rng = np.random.default_rng(h % (1 << 32))
-    succ = float(rng.beta(2, 3)) + 0.02 * len(genome.nodes); coll = float(rng.beta(1, 8)); train_s = float(1 + 20 * rng.random())
+    succ = float(rng.beta(2, 3)) + 0.02 * len(genome.nodes) + 0.02 * np.random.default_rng(seed + 7).normal()
+    coll = float(rng.beta(1, 8)); train_s = float(1 + 20 * rng.random())
     f = fitness_of(succ, coll, train_s, weights=weights)
+    hb = grammar.has_tag(genome, "bridge")
     return dict(valid=True, fitness=f, success=succ, collision=coll, energy=1.0, cvar_01=succ / 2, worst_of_20=succ / 3, train_s=train_s, eval_s=0.0,
-                has_bridge=grammar.has_tag(genome, "bridge"), has_rl=grammar.has_tag(genome, "rl"), invalid_reason="", error="")
+                has_bridge=hb, has_rl=grammar.has_tag(genome, "rl"), invalid_reason="", error="", quarantined=False,
+                ablation_delta=(0.05 if (rung >= 2 and hb) else float("nan")))
 
 
 class Search:
@@ -48,6 +52,9 @@ class Search:
         self.p_cma = 0.3 if algorithm == "mapelites" else 0.0
         self.surrogate = Surrogate(grammar, seed=seed) if algorithm == "mapelites" else None
         self.recent_sids = []
+        # seeds per rung (SEARCH_PLAN 2.8); tests shrink these
+        self.rung_seeds = {1: (1, 2), 2: tuple(range(10, 20))}
+        self.validated = {}                                    # cell -> dict(gid, fitness, ablation_delta, eval_ids)
 
     # ---------------------------------------------------------------- cells
     def random_cell_desc(self):
@@ -100,18 +107,36 @@ class Search:
             return self.G.crossover(parent, other, self.rng)
         return self.G.mutate(parent, self.rng)
 
+    def _row(self, g, desc, cell, rung, seed, r):
+        lvl, dist = novelty(g, self.seed_set)
+        row = dict(eval_id=f"{g.gid}-{cell}-r{rung}-s{seed}-{self.n_evals}", gid=g.gid, sid=g.sid, genome_json=g.to_json(), dsl=g.dsl(),
+                   grammar_hash=self.G.hash, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
+                   cell=cell, novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)}, **r)
+        self.archive.append(row, genome=g)
+        return row
+
+    def _rung(self, g, desc, cell, rung, seeds):
+        """Evaluate at a rung over its seeds; mean fitness, or None if any seed is invalid or quarantined."""
+        rows = [self._row(g, desc, cell, rung, sd, self.evaluate(g, desc, rung, sd, self.G)) for sd in seeds]
+        if not all(r["valid"] for r in rows) or any(r.get("quarantined", False) for r in rows):
+            return None, rows
+        return float(np.mean([r["fitness"] for r in rows])), rows
+
     def step(self):
         g, desc = self.propose()
         cell = self.map.cell_of(desc)
         r = self.evaluate(g, desc, 0, 0, self.G)
-        lvl, dist = novelty(g, self.seed_set)
-        row = dict(eval_id=f"{g.gid}-{cell}-r0-{self.n_evals}", gid=g.gid, sid=g.sid, genome_json=g.to_json(), dsl=g.dsl(),
-                   grammar_hash=self.G.hash, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=0, cell=cell,
-                   novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)}, **r)
-        self.archive.append(row, genome=g)
+        row = self._row(g, desc, cell, 0, 0, r)
         improved = False
-        if r["valid"]:
-            improved = self.map.insert(cell, g.gid, r["fitness"], row["eval_id"], self.gen, desc)
+        elite = self.map.elite.get(cell); elite_f = elite["fitness"] if elite else None
+        if r["valid"] and not r.get("quarantined", False) and after_rung0(r["fitness"], elite_f).rung == 1:
+            f1, _ = self._rung(g, desc, cell, 1, self.rung_seeds[1])
+            if f1 is not None and is_jump(f1, elite_f):
+                # a statistical anomaly is re-run on fresh seeds before it is believed (program section 10.2)
+                f1b, _ = self._rung(g, desc, cell, 1, tuple(sd + 100 for sd in self.rung_seeds[1]))
+                f1 = None if f1b is None else 0.5 * (f1 + f1b)
+            if f1 is not None:
+                improved = self.map.insert(cell, g.gid, f1, row["eval_id"], self.gen, desc)
         if self.batch is not None and g.provenance.op == "cma":
             self.batch["fits"].append(r["fitness"] if r["valid"] else -np.inf)
             if len(self.batch["fits"]) >= self.batch["n"]:
@@ -127,11 +152,25 @@ class Search:
     # ---------------------------------------------------------- checkpoint
     def state(self):
         return dict(gen=self.gen, n_evals=self.n_evals, pending=self.pending, rng=self.rng.bit_generator.state, elites=self.map.state(),
-                    algorithm=self.algorithm, grammar_hash=self.G.hash,
+                    algorithm=self.algorithm, grammar_hash=self.G.hash, validated={str(k): v for k, v in self.validated.items()},
                     surrogate_r2=(self.surrogate.r2 if self.surrogate is not None else None),
                     surrogate_trained_at=(self.surrogate.trained_at if self.surrogate is not None else None))
 
+    def validate_due(self, final=False):
+        """Rung 2 for elites that held their cell long enough (all of them when final)."""
+        for c in due_for_validation(self.map, self.gen, final):
+            e = self.map.elite[c]
+            if self.validated.get(c, {}).get("gid") == e["gid"]:
+                continue
+            g = Genome.from_json(self.archive.genome_json(e["gid"]))
+            f2, rows = self._rung(g, e["desc"], c, 2, self.rung_seeds[2])
+            deltas = [r["ablation_delta"] for r in rows if r.get("ablation_delta") is not None and np.isfinite(r.get("ablation_delta", np.nan))]
+            self.validated[c] = dict(gid=e["gid"], fitness=f2, ablation_delta=(float(np.mean(deltas)) if deltas else None),
+                                     eval_ids=[r["eval_id"] for r in rows], gen=self.gen)
+            self.log(f"validated cell {c}: rung-2 fitness {f2}, ablation delta {self.validated[c]['ablation_delta']}")
+
     def checkpoint(self):
+        self.validate_due()
         d = self.archive.checkpoint(self.state())
         self.log(f"checkpoint {d.name}: {self.n_evals} evals, {self.map.filled()} cells, mean elite {self.map.mean_fitness():.3f}")
         return d
@@ -143,13 +182,23 @@ class Search:
         assert st["grammar_hash"] == self.G.hash, "the archive was built with another grammar"
         self.gen, self.n_evals, self.pending = st["gen"], st["n_evals"], list(st["pending"])
         self.rng.bit_generator.state = st["rng"]; self.map.load_state(st["elites"])
+        self.validated = {int(k): v for k, v in st.get("validated", {}).items()}
         if replayed:
             # rows written after the checkpoint: re-insert their elites so nothing evaluated is lost
-            df = self.archive.frame()
-            for _, r in df.iloc[-replayed:].iterrows():
-                if r.get("valid", True):
-                    self.map.insert(int(r.cell), r.gid, float(r.fitness), r.eval_id, int(r.generation), [r[f"d_{a}"] for a in AXES])
-            self.n_evals += replayed; self.gen += replayed
+            df = self.archive.frame(include_excluded=True)
+            tail = df.iloc[-replayed:]
+            # rung-1 evaluations were inserted as the mean over their seeds; rebuild the same
+            # groups (a pair may straddle the checkpoint, so group over the whole frame)
+            r1 = df[(df.rung == 1) & df.valid]
+            keys = {(r.gid, int(r.cell), int(r.generation)) for _, r in tail[tail.rung == 1].iterrows()}
+            for gid, cell, gen in keys:
+                grp = r1[(r1.gid == gid) & (r1.cell == cell) & (r1.generation == gen)]
+                if len(grp):
+                    r0 = df[(df.gid == gid) & (df.cell == cell) & (df.generation == gen) & (df.rung == 0)]
+                    eid = r0.eval_id.iloc[0] if len(r0) else grp.eval_id.iloc[0]
+                    self.map.insert(cell, gid, float(grp.fitness.mean()), eid, gen, [grp.iloc[0][f"d_{a}"] for a in AXES])
+            n0 = int((tail.rung == 0).sum()) if "rung" in tail else len(tail)     # only rung-0 rows are proposals
+            self.n_evals += n0; self.gen += n0
         self.log(f"resumed at {self.n_evals} evals ({replayed} replayed), {self.map.filled()} cells")
         return True
 
@@ -161,6 +210,7 @@ class Search:
                 last_improve = self.n_evals
             if self.n_evals - last_improve >= stop_after_flat and self.map.filled() > 0:
                 self.log(f"no cell improved for {stop_after_flat} evaluations; stopping"); break
+        self.validate_due(final=True)
         self.checkpoint()
         (self.root / "map.parquet").parent.mkdir(exist_ok=True)
         self.map.to_frame().to_parquet(self.root / "map.parquet", index=False)
