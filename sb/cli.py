@@ -80,11 +80,28 @@ def cmd_gate(a):
 
 
 def cmd_report(a):
-    from sb.gate.report import build_tables, fill_findings
-    from sb.gate.run_gate import git
-    T, dec = build_tables(settings.GATE, prior_dir())
-    fill_findings(T, commit=git("rev-parse", "--short", "HEAD"))
-    print("verdict:", dec["verdict"] if dec else "not available"); print("tables ->", settings.GATE / "tables.md")
+    if a.what == "gate":
+        from sb.gate.report import build_tables, fill_findings
+        from sb.gate.run_gate import git
+        T, dec = build_tables(settings.GATE, prior_dir())
+        fill_findings(T, commit=git("rev-parse", "--short", "HEAD"))
+        print("verdict:", dec["verdict"] if dec else "not available"); print("tables ->", settings.GATE / "tables.md")
+        return
+    # search: rebuild the search state from a results directory and write the interim report
+    from pathlib import Path
+    from sb.core.genome import Genome
+    from sb.search.freeze import load_frozen
+    from sb.search.loop import Search, dummy_evaluate
+    from sb.search.report import interim
+    root = Path(a.root); G, man = load_frozen(pilot=a.pilot)
+    gdir = settings.ROOT / ("grammar_pilot" if a.pilot else "grammar")
+    seeds = [Genome.from_json(l) for l in (gdir / "seeds.jsonl").read_text().splitlines() if l.strip()]
+    s = Search(G, root, seeds, dummy_evaluate, n_cells=len(__import__("numpy").load(root / "cvt_centroids.npy")), log=lambda m: None)
+    if not s.resume():
+        raise SystemExit("no verified checkpoint under " + str(root))
+    out = root / "interim.md"
+    interim(s, out, figure=root / "map.png")
+    print("interim ->", out)
 
 
 def cmd_audit(a):
@@ -111,7 +128,8 @@ def main():
     g = sub.add_parser("gate"); g.add_argument("--seed", type=int, required=True); g.add_argument("--sources", default="")
     g.add_argument("--smoke", action="store_true"); g.add_argument("--allow-dirty", action="store_true"); g.add_argument("--skip-tests", action="store_true")
     g.add_argument("--cost", default="greedy", choices=["greedy", "track"]); g.set_defaults(f=cmd_gate)
-    r = sub.add_parser("report"); r.add_argument("what", choices=["gate"]); r.set_defaults(f=cmd_report)
+    r = sub.add_parser("report"); r.add_argument("what", choices=["gate", "search"]); r.add_argument("--root", default="results/search/mapelites")
+    r.add_argument("--pilot", action="store_true"); r.set_defaults(f=cmd_report)
     au = sub.add_parser("audit"); au.add_argument("--n", type=int, default=64); au.add_argument("--device", default=""); au.add_argument("--ids", default="")
     au.set_defaults(f=cmd_audit)
     f = sub.add_parser("freeze"); f.add_argument("--pilot", action="store_true"); f.add_argument("--filter", default="none", choices=["none", "no_bridge", "no_rl"])
