@@ -31,9 +31,10 @@ def make(n, device):
 
 def pd_step(fe, g, step):
     """Nominal PD toward the geodesic between the skill's marginal means, all in tensors."""
-    k = torch.clamp(step // TK.T_SKILL, max=2)
+    k = torch.clamp(step // TK.T_SKILL, max=2).view(1)
     tau = ((step % TK.T_SKILL).float() / TK.T_SKILL + 1.0 / TK.T_SKILL).clamp(max=1.0)
-    a = fe.means[k].expand_as(g); b = fe.means[k + 1].expand_as(g)
+    # index_select keeps the skill index on the device: plain tensor indexing syncs and breaks graph capture
+    a = torch.index_select(fe.means, 0, k).expand_as(g); b = torch.index_select(fe.means, 0, k + 1).expand_as(g)
     ref = S.SE2.interp(a, b, tau.expand(g.shape[0]))
     return 6.0 * S.between(g, ref)
 
