@@ -60,3 +60,19 @@ commit. No archive row of the pilot was produced under the bug.
 
 Lesson recorded: a component whose full build is too slow for its test still needs a
 build at a toy budget in the test; "the spec looks right" is not a component test.
+
+## 2026-09-13 — registered solver flags that nothing read (component bug, class 2)
+
+Seen: `controller.bridge_drift` declared ipf, eps, coupling, sampler and steps and its
+build used only `reference`. The docstring said the flags were "honoured at rung 2
+only"; no code did. The component test checked the declared spec, which is exactly how
+this stays invisible.
+
+Handled: rung 2 now trains with ipf / eps / coupling (four couplings implemented and
+tested), `steps` is a command hold at every rung, and `sampler` is documented as inert
+for a drift-executed controller (it belongs to bridge samples as data, which the gate
+froze out of the pilot). The pilot was re-frozen and tranche 1 restarted before any
+rung-2 row (PLAN_CHANGES 2026-09-13).
+
+Lesson: a parameter in a component's spec must be read by a test that changes it and
+sees a different build; tests/test_evaluate.py now does that for the drift controller.

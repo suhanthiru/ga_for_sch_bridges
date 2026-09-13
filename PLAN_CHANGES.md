@@ -146,3 +146,34 @@ from an empty archive. This is a change to what is being searched, permitted bec
 no search row exists under the old manifest; the probe rows keep the old hash.
 
 Affected evaluations: none.
+
+## 2026-09-13 — the neural bridge's solver flags were inert at every rung; honoured at rung 2 now; tranche 1 restarted
+
+Evidence: `controller.bridge_drift` carries ipf, eps, coupling, sampler and steps as
+genes (SEARCH_PLAN 2.3: "the solver flags on every variant"); the pilot's pruning rule
+made them inert on rungs 0-1 by design, but the evaluator never read them at rung 2
+either, so the validation rung and its ablation delta would have scored a genome's
+flags as noise. Found by reading the component while the first hours of tranche 1 ran
+(13 log lines, no rung-2 row).
+
+Change, before any rung-2 row:
+- rung 2 trains the neural solver with the genome's `ipf` IPF iterations, its `eps` as
+  the reference diffusion and its endpoint `coupling` (independent, demo_paired, ot,
+  minibatch_ot are implemented in `sb/core/solver.py::sample_pairs`); every such config
+  is its own cache entry (the cache key hashes the whole config).
+- `steps` is the number of drift evaluations per skill at every rung (the command is
+  held between them), which is what a step count means for a drift executed by the
+  environment.
+- `sampler` cannot act on a drift-executed controller (the environment integrates the
+  SDE; the sampler would apply to bridge *samples* as data, a slot the gate froze). It
+  stays a gene of the frozen grammar, recorded as inert; the variant census reports it
+  with that label. ERRORS.md 2026-09-13 has the entry.
+- `load_frozen` restricts the registry to the manifest's components and refuses a
+  component-source drift only for a search run (reports warn), so later stage-C
+  components do not disturb reading a frozen manifest.
+
+The pilot manifest is re-frozen (hash in SEARCH_PLAN 2.10) and tranche 1 restarts from
+an empty archive; the stopped start is kept as `results/search/pilot_t1_aborted_089779d1`
+(rung 0-1 rows only, whose behaviour is unchanged except the `steps` hold).
+
+Affected evaluations: none analysed; no rung-2 row existed.

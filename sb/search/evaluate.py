@@ -131,9 +131,9 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
 class Stack:
     """Compiled genome: build every node's object bottom-up, wire the controller."""
 
-    def __init__(self, genome, grammar, task, demos, models, seed, caps, obs_fn=obs_of, obs_dim=OBS_DIM):
+    def __init__(self, genome, grammar, task, demos, models, seed, caps, obs_fn=obs_of, obs_dim=OBS_DIM, rung=0):
         self.g, self.grammar, self.task, self.demos, self.models, self.seed, self.caps = genome, grammar, task, demos, models, seed, caps
-        self.obs_fn, self.obs_dim = obs_fn, obs_dim
+        self.obs_fn, self.obs_dim, self.rung = obs_fn, obs_dim, int(rung)
         self.built = {}
         self.manifold = self._build_slot(ROOT, "manifold")
         self.seam = self._build_slot(ROOT, "seam")                 # before the controller: bridges read the width
@@ -146,7 +146,7 @@ class Stack:
 
     def _ctx(self, sub):
         return dict(task=self.task, demos=self.demos, models=self.models, seed=self.seed, manifold=getattr(self, "manifold", None), sub=sub, caps=self.caps,
-                    obs_fn=self.obs_fn, obs_dim=self.obs_dim, seam=getattr(self, "seam", None))
+                    obs_fn=self.obs_fn, obs_dim=self.obs_dim, seam=getattr(self, "seam", None), rung=self.rung)
 
     def _replan_clock(self, g, k, tau, step, extra):
         """Trigger slot: restart the skill clock of a robot whose deviation from the
@@ -277,7 +277,7 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         demos = demos if demos is not None else load_demos(settings.demo_path(cell.layout), device)
         t0 = time.time()
         obs_fn, obs_dim = cell.obs()
-        stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps(), obs_fn=obs_fn, obs_dim=obs_dim)
+        stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps(), obs_fn=obs_fn, obs_dim=obs_dim, rung=rung)
         budget = rl_steps if rl_steps is not None else cfg["rl_steps"]
         if isinstance(stack.controller, dict) and stack.controller.get("kind") in ("ppo", "ppo_residual"):
             stack.controller = train_rl(stack.controller, tk, seed, budget, device, n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)

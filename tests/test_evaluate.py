@@ -187,3 +187,29 @@ def test_pooled_bridge_training_is_reproducible_and_records_its_provenance(cpu, 
     assert all(torch.equal(a[k][key][pn], b[k][key][pn]) for k in a for key in a[k] for pn in a[k][key])
     prov = json.loads(next(p for p in (tmp_path / "a").iterdir() if p.suffix == ".json").read_text())
     assert prov["workers"] == 3 and prov["threads"] == 5 and prov["manifold"] == "flat"
+
+
+def test_rung2_bridge_drift_honours_ipf_eps_coupling_and_steps(cpu, small_demos, tmp_path, monkeypatch):
+    import sb.gen.bridges as B
+    monkeypatch.setattr(B, "SEARCH_BRIDGE_CFG", dict(B.SEARCH_BRIDGE_CFG, n_pair=32, steps0=2, steps_ipf=2, batch=16, n_sim=2))
+    monkeypatch.setattr(B, "WORKERS", 1)
+    G = Grammar(load_all())
+    params = (("coupling", "minibatch_ot"), ("eps", 0.02), ("ipf", 1), ("reference", "brownian"), ("sampler", "sde_em"), ("steps", 8))
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.bridge_drift", params))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    from sb.envs import terrain as TR
+    from sb.envs import task as TK
+    from sb.envs.gen_task import GenTask
+    from sb.envs.base import Caps
+    tk = GenTask(TR.Layout("L1"), "none", 8, 1, cpu)
+    st0 = Stack(g, G, tk, small_demos, tmp_path, 0, Caps(), rung=0)
+    st2 = Stack(g, G, tk, small_demos, tmp_path, 0, Caps(), rung=2)
+    files = sorted(p.name for p in tmp_path.iterdir() if p.suffix == ".pt")
+    assert len(files) == 2                                             # one cache entry per config: rung 0 (K=0) and rung 2 (K=1, eps, coupling)
+    assert st0.controller.ctl.fwd is not None and st2.controller.hold == TK.T_SKILL // 8
+    x = tk.sample(0, 4)
+    u0, _ = st2.act(x, 0, torch.zeros(4), 0); u1, _ = st2.act(x * 1.1, 0, torch.zeros(4), 1)
+    assert torch.equal(u0, u1)                                         # held within the hold window
+    u2, _ = st2.act(x * 1.1, 0, torch.zeros(4), TK.T_SKILL // 8)
+    assert not torch.equal(u0, u2)                                     # re-evaluated at the boundary

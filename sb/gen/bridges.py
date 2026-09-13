@@ -32,15 +32,22 @@ WORKERS, WORKER_THREADS = 3, 5
 def _train_worker(payload):
     """One skill's nets in a child process: rebuild the CPU task from its state (the
     generator is not picklable and is re-seeded per skill), train, return state dicts."""
-    state, k, ref_kw, mf_name, seed, cfg, threads = payload
+    state, k, ref_kw, mf_name, seed, cfg, threads, demos = payload
     torch.set_num_threads(threads); torch.manual_seed(seed * 17 + k)      # net init is global-RNG; a reused worker must not drift
     from sb.envs.gen_task import GenTask
     tkc = GenTask.__new__(GenTask); tkc.__dict__.update(state)
     tkc.gen = torch.Generator(device="cpu").manual_seed(1000 + seed * 7 + k)
     ref = Reference(**ref_kw)
-    nets, _ = SV.train_skill(tkc, k, ref, S.MANIFOLDS[mf_name], seed * 17 + k, torch.device("cpu"), K=0, log=lambda m: None,
-                             **dict(dict(with_bwd=False), **cfg))
+    nets, _ = SV.train_skill(tkc, k, ref, S.MANIFOLDS[mf_name], seed * 17 + k, torch.device("cpu"), log=lambda m: None, demos=demos,
+                             **split_cfg(cfg))
     return k, nets
+
+
+def split_cfg(cfg):
+    """The training kwargs of a cache config: K (IPF iterations, default 0), coupling and
+    with_bwd ride in the config; sigma is the reference's and is taken out here."""
+    c = dict(dict(with_bwd=False, K=0, coupling="independent"), **cfg); c.pop("sigma", None)
+    return c
 
 
 def quantise_width(width):
@@ -58,11 +65,14 @@ def bridge_path(models_dir, kind, layout, seed, tag="", mf=S.SE2, cfg=BRIDGE_CFG
     return Path(models_dir) / f"bridge_{kind}_{layout}{tag}_{mf.name}_{cfg_hash(cfg)}_s{seed}.pt"
 
 
-def get_bridges(kind, tk, layout, seed, device, models_dir, tag="", mf=S.SE2, cfg=BRIDGE_CFG, width=1.0, workers=WORKERS):
+def get_bridges(kind, tk, layout, seed, device, models_dir, tag="", mf=S.SE2, cfg=BRIDGE_CFG, width=1.0, workers=WORKERS, demos=None):
     """`width` scales the handoff marginals (rho_1, rho_2) the bridge is trained between:
-    the seam slot's cloud width. It is part of the cache key. With `workers` > 1 the skills
-    train in a process pool (bench: 2.4x on this machine); a sidecar json next to the
-    cache file records how the nets were made."""
+    the seam slot's cloud width. It is part of the cache key, as is every entry of `cfg`
+    (which may carry K = IPF iterations, sigma = the reference's diffusion, coupling; the
+    validation rung passes a genome's solver flags this way). With `workers` > 1 the
+    skills train in a process pool (bench: 2.4x on this machine); a sidecar json next to
+    the cache file records how the nets were made. `demos` (the G tensor) is needed by
+    the demo_paired coupling only."""
     width = quantise_width(width)
     if width != 1.0:
         tag = f"{tag}_w{width:g}"
@@ -76,19 +86,21 @@ def get_bridges(kind, tk, layout, seed, device, models_dir, tag="", mf=S.SE2, cf
         for k in (1, 2):
             tkc.covs[k] = tkc.covs[k] * width ** 2
     ref_body = tk.body_std ** 2 if hasattr(tk, "body_std") else None
-    ref = Reference(kind, sigma=0.05, kappa=2.0, slip_scale=tk.slip_scale if hasattr(tk, "slip_scale") else 1.0,
+    sigma = float(cfg.get("sigma", 0.05))
+    ref = Reference(kind, sigma=sigma, kappa=2.0, slip_scale=tk.slip_scale if hasattr(tk, "slip_scale") else 1.0,
                     fields=tkc.obs_fields, body_cov=ref_body.to(cpu) if ref_body is not None else None)
+    G = demos.to(cpu) if demos is not None else None
     nets = {}
     if workers > 1:
         state = {k_: v for k_, v in tkc.__dict__.items() if k_ != "gen"}
-        ref_kw = dict(kind=kind, sigma=0.05, kappa=2.0, slip_scale=ref.slip_scale, fields=tkc.obs_fields, body_cov=ref.body_cov)
-        jobs = [(state, k, ref_kw, mf.name, seed, cfg, WORKER_THREADS) for k in range(TK.N_SKILL)]
+        ref_kw = dict(kind=kind, sigma=sigma, kappa=2.0, slip_scale=ref.slip_scale, fields=tkc.obs_fields, body_cov=ref.body_cov)
+        jobs = [(state, k, ref_kw, mf.name, seed, cfg, WORKER_THREADS, G) for k in range(TK.N_SKILL)]
         with ProcessPoolExecutor(min(workers, TK.N_SKILL)) as ex:
             for k, n_ in ex.map(_train_worker, jobs):
                 nets[k] = n_
     else:
         for k in range(TK.N_SKILL):
-            nets[k], _ = SV.train_skill(tkc, k, ref, mf, seed * 17 + k, cpu, K=0, log=lambda m: None, **dict(dict(with_bwd=False), **cfg))
+            nets[k], _ = SV.train_skill(tkc, k, ref, mf, seed * 17 + k, cpu, log=lambda m: None, demos=G, **split_cfg(cfg))
     nets = {k: {key: {pn: t.to(device) for pn, t in sd.items()} for key, sd in n_.items()} for k, n_ in nets.items()}
     p.parent.mkdir(parents=True, exist_ok=True)
     torch.save(nets, p)

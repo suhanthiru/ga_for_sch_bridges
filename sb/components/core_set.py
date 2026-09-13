@@ -119,18 +119,38 @@ class CtlPD:
            axes=dict(role="bridge_drift", reference="ou", coupling="param", marginal="hard_two", representation="neural_drift", family="dynamic_sb"),
            test=T + "test_controllers")
 class CtlBridgeDrift:
-    """Neural (DSBM iteration-0) bridge drift. The pilot pruned per-mutant neural solving
-    from rungs 0-1 (PLAN_CHANGES 2026-09-13): the nets come from the per-cell cache
-    trained once at BRIDGE_CFG for the chosen reference; the solver flags among the
-    parameters are honoured at rung 2 only."""
+    """Neural (DSBM) bridge drift executed as the command. The pilot pruned per-mutant
+    neural solving from rungs 0-1 (PLAN_CHANGES 2026-09-13): there the nets come from the
+    per-cell cache trained once at the search config for the chosen reference and seam
+    width, and ipf / eps / coupling are inert. At rung 2 the genome's flags are honoured:
+    the solver runs `ipf` IPF iterations with the reference diffusion `eps` and the
+    endpoint `coupling`. `steps` is the number of drift evaluations per skill (the command
+    is held between them). `sampler` cannot apply to a drift-executed controller (the
+    environment integrates the SDE) and is recorded as inert (ERRORS 2026-09-13)."""
     def build(self, params, ctx):
         from sb.core import solver as SV
         from sb.gen.bridges import SEARCH_BRIDGE_CFG, get_bridges
-        tk = ctx["task"]
+        tk = ctx["task"]; rung = int(ctx.get("rung", 0)); K = int(params["ipf"]) if rung >= 2 else 0
+        cfg = SEARCH_BRIDGE_CFG if rung < 2 else dict(SEARCH_BRIDGE_CFG, K=K, sigma=float(params["eps"]), coupling=params["coupling"])
+        demos = ctx["demos"][0] if (ctx.get("demos") is not None and params["coupling"] == "demo_paired" and rung >= 2) else None
         nets = get_bridges(params["reference"], tk, tk.layout.name, ctx.get("seed", 0), tk.device, ctx["models"], mf=ctx["manifold"],
-                           cfg=SEARCH_BRIDGE_CFG, width=seam_width(ctx))
+                           cfg=cfg, width=seam_width(ctx), demos=demos)
         # (g, k, tau, step) -> (u, extra); extra[:, 0] is the forward/backward disagreement D
-        return SV.BridgeController(nets, ctx["manifold"], tk, 0, tk.device, with_D=True)
+        ctl = SV.BridgeController(nets, ctx["manifold"], tk, K, tk.device, with_D=True)
+        return HeldCommand(ctl, max(1, TK.T_SKILL // int(params["steps"])))
+
+
+class HeldCommand:
+    """Evaluate the wrapped controller every `hold` steps of a skill and repeat its
+    command in between (the `steps` gene of the drift controllers)."""
+    def __init__(self, ctl, hold):
+        self.ctl, self.hold, self.last = ctl, int(hold), None
+
+    def __call__(self, g, k, tau, step):
+        t = int(step) % TK.T_SKILL
+        if self.hold <= 1 or self.last is None or t % self.hold == 0 or self.last[0].shape[0] != g.shape[0]:
+            self.last = self.ctl(g, k, tau, step)
+        return self.last
 
 
 @component("controller.grid_bridge", ("controller",), params={"eps": P.loguniform(2e-3, 5e-2), "grid": P.choice([32, 64]), "iters": P.choice([50, 200]),

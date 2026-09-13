@@ -52,16 +52,30 @@ def freeze(out_dir=None, filt="none", n_random=200, seed=0, run_tests=True, pilo
     return G, out
 
 
-def load_frozen(out_dir=None, pilot=False):
-    """The grammar as frozen, with disabled.json applied; refuses to run if the registry's
-    hash no longer matches the manifest (the code changed after the freeze)."""
+def load_frozen(out_dir=None, pilot=False, strict=True):
+    """The grammar as frozen, with disabled.json applied. The registry is restricted to
+    the manifest's components (components registered later do not touch a frozen
+    grammar); a structural difference refuses always, a component-source difference
+    refuses when `strict` (a search must run the frozen code, from its worktree) and only
+    warns otherwise (reports read rows, they do not run components)."""
     from dataclasses import replace
     out = Path(out_dir or settings.ROOT / ("grammar_pilot" if pilot else "grammar"))
     man = json.loads((out / "manifest.json").read_text())
-    reg = dict(load_all())
-    G = Grammar(reg, root_slots=PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS, filt=FILTERS[man["filter"]])
-    if G.hash != man["hash"]:
-        raise SystemExit(f"registry hash {G.hash} differs from the frozen manifest {man['hash']}; the grammar changed after the freeze")
+    keys = [c["key"] for c in man["components"]]
+    full = load_all(); missing = [k for k in keys if k not in full]
+    if missing:
+        raise SystemExit(f"frozen components no longer registered: {missing}")
+    reg = {k: full[k] for k in keys}
+    roots = PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS
+    G = Grammar(reg, root_slots=roots, filt=FILTERS[man["filter"]])
+    m = G.manifest(); src_ok = m.pop("source", None) == man.get("source")
+    if any(m[k] != man.get(k) for k in m):
+        raise SystemExit(f"the grammar's structure differs from the frozen manifest {man['hash']}; the grammar changed after the freeze")
+    if not src_ok:
+        msg = f"component sources differ from the freeze (manifest {man['hash']}); rows under it were produced by the frozen code"
+        if strict:
+            raise SystemExit(msg + "; run the search from its worktree")
+        print("warning: " + msg, file=sys.stderr)
     for d in json.loads((out / "disabled.json").read_text()):
         reg[d["key"]] = replace(reg[d["key"]], disabled=d["reason"])
-    return Grammar(reg, root_slots=PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS, filt=FILTERS[man["filter"]]), man
+    return Grammar(reg, root_slots=roots, filt=FILTERS[man["filter"]]), man

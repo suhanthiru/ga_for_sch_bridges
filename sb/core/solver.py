@@ -53,10 +53,50 @@ def make_ref(kind, sigma, fields, slip_scale=1.0, kappa=2.0):
     return Reference(kind, sigma=sigma, kappa=kappa, slip_scale=slip_scale, fields=fields)
 
 
-def sample_pairs(tk, k, n, ref, mf):
-    """Endpoint coupling.  The killed reference rejects pairs whose straight line
-    crosses an obstacle; every other reference uses the independent coupling."""
+def _embed(x):
+    """Points of SE(2) as 4-vectors so a Euclidean cost respects the heading weight."""
+    return torch.cat([x[:, :2], S.HEADING_W * torch.cos(x[:, 2:3]), S.HEADING_W * torch.sin(x[:, 2:3])], 1)
+
+
+def sinkhorn_pairs(x0, x1, eps_rel=0.05, iters=100):
+    """Entropic OT between two equal-size clouds; every x0 is paired with the x1 that
+    carries most of its row of the plan (a permutation up to ties)."""
+    C = torch.cdist(_embed(x0), _embed(x1)) ** 2
+    eps = eps_rel * float(C.mean()) + 1e-12
+    n, m = C.shape
+    la = torch.full((n,), -math.log(n), device=C.device); lb = torch.full((m,), -math.log(m), device=C.device)
+    f = torch.zeros(n, device=C.device); g = torch.zeros(m, device=C.device)
+    for _ in range(iters):
+        f = eps * (la - torch.logsumexp((g[None, :] - C) / eps, 1))
+        g = eps * (lb - torch.logsumexp((f[:, None] - C) / eps, 0))
+    plan = (f[:, None] + g[None, :] - C) / eps
+    return x0, x1[plan.argmax(1)]
+
+
+def sample_pairs(tk, k, n, ref, mf, coupling="independent", demos=None, chunk=512):
+    """Endpoint coupling (SEARCH_PLAN 2.3). independent: marginal samples paired at random
+    (the killed reference rejects pairs whose straight line crosses an obstacle).
+    demo_paired: (start, end) states of the demonstrations for this skill, drawn with
+    replacement and jittered by a tenth of the marginal spread. ot: independent samples
+    re-paired by an entropic OT plan over the whole cloud; minibatch_ot: the same within
+    chunks of `chunk`."""
+    if coupling == "demo_paired":
+        if demos is None:
+            raise ValueError("demo_paired coupling needs the demonstrations")
+        G = demos.to(tk.device); T = TK.T_SKILL
+        i = torch.randint(G.shape[0], (n,), generator=tk.gen, device=tk.device)
+        a, b = G[i, k * T], G[i, (k + 1) * T]
+        j0 = 0.1 * torch.randn(n, 3, generator=tk.gen, device=tk.device) @ psd_sqrt(tk.covs[k])
+        j1 = 0.1 * torch.randn(n, 3, generator=tk.gen, device=tk.device) @ psd_sqrt(tk.covs[k + 1])
+        return mf.retract(a, j0), mf.retract(b, j1)
     x0, x1 = tk.sample(k, n), tk.sample(k + 1, n)
+    if coupling == "ot":
+        return sinkhorn_pairs(x0, x1)
+    if coupling == "minibatch_ot":
+        outs = [sinkhorn_pairs(x0[i:i + chunk], x1[i:i + chunk]) for i in range(0, n, chunk)]
+        return torch.cat([o[0] for o in outs]), torch.cat([o[1] for o in outs])
+    if coupling != "independent":
+        raise ValueError(f"unknown coupling {coupling}")
     if ref.kind != "killed":
         return x0, x1
     keep0, keep1 = [], []
@@ -116,7 +156,7 @@ def simulate(net, g0, ref, mf, goal, fields, layout, n_step=50, backward=False, 
 
 
 def train_skill(tk, k, ref, mf, seed, device, K=5, n_pair=8000, steps0=2500, steps_ipf=1000,
-                batch=512, lr=1e-3, n_sim=50, log=print, frozen_coupling=False, with_bwd=True):
+                batch=512, lr=1e-3, n_sim=50, log=print, frozen_coupling=False, with_bwd=True, coupling="independent", demos=None):
     """DSBM.  Returns {(iter, direction): net} for iter in {0, K}.
 
     `frozen_coupling` is the control for the Phase-1 IPF result: it spends the
@@ -126,7 +166,7 @@ def train_skill(tk, k, ref, mf, seed, device, K=5, n_pair=8000, steps0=2500, ste
     gen = torch.Generator(device=device).manual_seed(seed)
     goal, fields = tk.means[k + 1].unsqueeze(0), tk.obs_fields
     fwd, bwd = DriftNet(mf).to(device), DriftNet(mf).to(device)
-    x0, x1 = sample_pairs(tk, k, n_pair, ref, mf)
+    x0, x1 = sample_pairs(tk, k, n_pair, ref, mf, coupling=coupling, demos=demos)
     kill = ref.kind == "killed"
 
     diag = []

@@ -99,7 +99,7 @@ def cmd_report(a):
     from sb.search.freeze import load_frozen
     from sb.search.loop import Search, dummy_evaluate
     from sb.search.report import interim
-    root = Path(a.root); G, man = load_frozen(pilot=a.pilot)
+    root = Path(a.root); G, man = load_frozen(pilot=a.pilot, strict=False)
     gdir = settings.ROOT / ("grammar_pilot" if a.pilot else "grammar")
     seeds = [Genome.from_json(l) for l in (gdir / "seeds.jsonl").read_text().splitlines() if l.strip()]
     s = Search(G, root, seeds, dummy_evaluate, n_cells=len(__import__("numpy").load(root / "cvt_centroids.npy")), log=lambda m: None)

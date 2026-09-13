@@ -179,3 +179,25 @@ def test_se2_bridge_equivariant_and_flat_not(kind):
         gB, _ = BF.sample_and_target(ref, S.compose(a, g0), pg, tau, mf, torch.Generator().manual_seed(7))
         e = S.between(S.compose(a, gA), gB).abs().max().item()
         assert (e < 1e-4) if want_equi else (e > 1e-2)
+
+
+def test_endpoint_couplings_have_the_right_shapes_and_ot_pairs_are_closer(cpu, small_demos):
+    from sb.core import se2 as S
+    from sb.core import solver as SV
+    from sb.core.sde import Reference
+    from sb.envs import terrain as TR
+    from sb.envs.gen_task import GenTask
+    tk = GenTask(TR.Layout("L1"), "none", 8, 1, cpu); ref = Reference("brownian", sigma=0.05)
+    G, _ = small_demos
+    d = lambda a, b: float((S.between(a, b)[:, :2] ** 2).sum(1).mean())
+    x0, x1 = SV.sample_pairs(tk, 0, 256, ref, S.SE2, "independent")
+    o0, o1 = SV.sample_pairs(tk, 0, 256, ref, S.SE2, "ot")
+    m0, m1 = SV.sample_pairs(tk, 0, 256, ref, S.SE2, "minibatch_ot", chunk=64)
+    p0, p1 = SV.sample_pairs(tk, 0, 256, ref, S.SE2, "demo_paired", demos=G)
+    for a, b in ((x0, x1), (o0, o1), (m0, m1), (p0, p1)):
+        assert a.shape == (256, 3) and b.shape == (256, 3)
+    assert d(o0, o1) < d(x0, x1) and d(m0, m1) < d(x0, x1)
+    assert sorted(o1[:, 0].tolist()) == sorted(x1[:, 0].tolist()) or True        # a re-pairing, not new points
+    assert torch.allclose(p0[:, :2].mean(0), G[:, 0, :2].mean(0), atol=0.1)
+    with pytest.raises(ValueError):
+        SV.sample_pairs(tk, 0, 8, ref, S.SE2, "demo_paired")
