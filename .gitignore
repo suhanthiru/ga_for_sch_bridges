@@ -28,9 +28,12 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Local run output
-results/
-runs/
+# Trained models and demo data are regenerated, not tracked.
+# Small result shards, timing and provenance files stay in git.
+results/**/models/
+*.pt
+*.npz
+data/
 logs/
 *.log
 
