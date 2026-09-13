@@ -180,3 +180,97 @@ the decision. GPU training is not bit-reproducible here; replication is statisti
 
 After the commit that adds this section nothing in 0.2-0.7 changes except through 0.4
 and 0.5, each with a PLAN_CHANGES entry dated before the affected run.
+
+---
+
+## 0.4 Costed pilot: throughput targets and the pruning rule
+
+Registered before any benchmark in `bench/` has been run on a quiet GPU. Numbers
+measured during the design pass (a separate session, GPU shared with other work) are
+not evidence and do not appear in the pilot report; only `bench/results.json` written
+by the scripts in this repo does.
+
+Targets (from the program):
+
+| quantity | target | script | counts as |
+|---|---|---|---|
+| environment steps per second per GPU | >= 50 000 | `bench/env_step.py` | the CUDA-graph replay at the batch the search will use (262 144 = population x seeds x episodes); eager reported alongside |
+| batched bridge solves per second | >= 200 | `bench/sinkhorn_grid.py` (grid), `bench/bridge_fit.py` (neural) | reported separately for the two solver families; each is judged against the target on its own |
+| population-parallel PPO updates per second | >= 128 | `bench/ppo_update.py` | genome-updates per second = P / seconds per full update (32 x 512 rollout, 4 epochs) at the largest P that fits |
+| GPU-hours, actual vs plan | report | all | wall-clock summed by the harness |
+
+Also recorded, no target: diffusion training and sampling throughput (`bench/diffusion_train.py`),
+the covariance-steering gate at four precisions (`bench/gate_precision.py`; the solver
+runs in fp32, the bf16 number says why), and the two-process bit-equality check
+(`bench/determinism.py`).
+
+Rule: if a measured quantity is below 50 % of its target, the grammar component that
+depends on it is pruned from the search rungs before the remaining 90 % of the budget
+runs, never replaced by something new. The pruning order if it comes to that: (1) the
+MPC oracle to the validation rung only; (2) the per-mutant neural bridge to the grid
+solver on rungs 0-1, neural bridges for elites and rung 2 only; (3) diffusion training
+to 2000 steps on rung 0; (4) PPO to 250k steps on rung 0. Variants with zero rung-1
+promotions in the pilot are removed. The grammar is not extended to compensate.
+
+Measurement protocol: one process, GPU otherwise idle (checked with nvidia-smi and
+recorded in `machine_info`), 3 warm-up and 5 timed episodes, median reported with the
+10th/90th percentiles, peak memory recorded. A run with another CUDA process active is
+labelled `shared_gpu` and repeated later.
+
+---
+
+## 1. Environment family
+
+Registered before any environment beyond E1 is written. Each environment is a variant
+of one codebase with the interface `reset(seed, descriptor) -> obs`,
+`step(action) -> obs, reward, done, info`, `oracle()`, `demos(n)`, and a unit test that
+its oracle succeeds >= 95 % undisturbed. E1 is the vendored SE(2) task; its fast step
+(`sb/envs/fast.py`) is the kernel every variant extends.
+
+| id | environment | what changes from E1 | descriptor axis it owns | oracle |
+|---|---|---|---|---|
+| E1 | terrain SE(2) | nothing (layouts L1, L2; slip / rain / push) | slip magnitude, slip anisotropy, push rate | MPPI with the true map (`MPCOracle`) |
+| E2 | partial-observation terrain | the terrain map is hidden; obs = a local 5x5 patch of the property fields around the robot + pose | map correlation length (Voronoi seed count 4 / 14 / 40) | same planner, given the true map |
+| E3 | multimodal goals | L2 extended to k in {2, 3, 4} gaps, terminal marginal a k-mode mixture; success = inside any mode | goal modality, mode separation | planner that picks the cheapest mode by expected slip along the straight path, then MPPI |
+| E4 | contact | planar pusher: robot pushes a box through a gap; box-robot contact is a hybrid step with a friction cone | friction coefficient (0.3 / 0.6 / 0.9), box mass (1 / 2 / 4) | MPPI over the coupled robot-box kinematics |
+| E5 | multi-agent | two SE(2) robots share a corridor; any collision fails both | corridor width over robot diameter (1.5 / 2.5 / 4) | joint MPPI over both robots |
+| E6 | long horizon | 6-10 chained skills instead of 3; the time budget is 1.2x the oracle's | number of skills (6 / 8 / 10), time slack (1.2 / 1.5) | MPPI with per-skill time allocation proportional to path length |
+| E7 | shifted demos | demos come from a mild terrain (slip_scale 0.35), test terrain is rough (1.4) | demo/test mismatch (0 / 2x / 4x) | MPPI on the test terrain |
+| E8 | sparse demos | E1 with N_demo in {1, 2, 5} | N_demo | as E1 |
+
+Additions applied to every environment:
+
+- Terrain information given to every learned component in the same form the bridge's
+  reference receives it: `terrain_info` in {none, oracle, estimated}. `estimated` is a
+  running estimate of the local slip covariance from the last 50 steps' displacement
+  residuals.
+- Demo quality in {oracle MPC, oracle + 20 % action noise, scripted suboptimal (kp = 2
+  tracker)}; human teleop is not available on this machine and is registered as absent.
+- Raw-observation variants of E1 and E2 (64-beam lidar over the wall/pile geometry, or
+  a 32x32 top-down occupancy image); the estimator slot and the latent-space bridge use
+  these.
+- Dynamics family in {unicycle (E1's body twist), Ackermann (curvature-limited), legged
+  proxy (piecewise-holonomic with stance phases of 10 steps)}.
+- Fidelity ladder: the fast batched step (rungs 0-1), a MuJoCo port of E1 and E4
+  (rung 2), hardware (rung 3; registered unavailable).
+- Oracle audit: for every environment the oracle's regret against a 10x larger MPPI
+  (K = 2000, H = 30) is reported; an oracle more than 0.05 below the larger planner is
+  replaced by it before the search starts.
+
+Descriptor vector for the map (bins): env id (8) | slip magnitude (0.35, 0.7, 1.4, 2.8) |
+slip anisotropy (1, 3, 10) | correlation length (4, 14, 40 seeds) | push rate multiplier
+(0, 1, 3) | heading noise (0.05, 0.2, 0.5, 1.0) | N_demo (1, 5, 20, 100) | observability
+(full, partial) | goal modality (1, 2, 3+) | horizon in skills (3, 6, 10) | terrain info
+(none, oracle, estimated) | dynamics (unicycle, ackermann, legged) | demo quality (3).
+CVT-MAP-Elites with 2000 centroids over the continuous embedding of these bins; the
+centroid file is committed so the CVT seed is a sensitivity axis.
+
+Sealed families E9 and E10: designed after the grammar is frozen by a fresh session that
+gets only `sb/envs/base.py` and this table, never the archive; never evaluated during the
+search; used only by the "why" model. Any archive row on E9/E10 before the freeze date
+invalidates the "why" model and triggers the design of E11/E12.
+
+Order of implementation: E1 (done) -> E2 (the estimator slot needs it, and the
+`hidden_states` sibling repo supplies the belief machinery) -> E8 and E7 (parameter
+changes only) -> E3 -> E6 -> E5 -> E4 (the only new physics). Each lands with its oracle
+test and its bins in `sb/core/descriptor.py` before the next starts.
