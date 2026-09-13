@@ -20,7 +20,7 @@ def test_route_passes_the_gap_and_clocks_scale_with_slack(cpu, n):
 @pytest.mark.slow
 @pytest.mark.parametrize("n", [6, 10])
 def test_e6_oracle_succeeds_undisturbed(cpu, n):
-    env = E6Long(64, cpu)
+    env = E6Long(128, cpu)
     env.reset(0, Descriptor(dict(n_skills=n, slack=1.2, disturbance="none")))
     out = env.evaluate(env.oracle(Caps()))
     assert float(out["success"].float().mean()) >= 0.95
