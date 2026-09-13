@@ -65,3 +65,14 @@ def test_single_family_gives_in_sample_only_and_validated_rows_average_seeds():
                                 **{f"d_{a}": 0.0 for a in AXES})])
     v = M.validated_rows(arch)
     assert len(v) == 1 and abs(float(v["ablation_delta"].iloc[0]) - 0.2) < 1e-9 and int(v["n_seeds"].iloc[0]) == 3
+
+
+def test_cell_features_run_on_a_pilot_cell_and_an_empty_archive_reports_nothing(cpu, small_demos, tmp_path):
+    from sb.search.cells import rung0_cells
+    from sb.search.why_report import cell_features, why_report
+    c = rung0_cells()[0]
+    f = cell_features(c["vector"], 0, cpu, n=8, demos=small_demos)
+    assert set(f) >= set(k for k in M.FEATURES if k != "terrain_info_level") and 0.0 <= f["pd_reachability"] <= 1.0
+    (tmp_path / "archive").mkdir()
+    txt, rows = why_report(tmp_path, device=cpu, demos=small_demos)
+    assert "No validated bridge rows" in txt and len(rows) == 0

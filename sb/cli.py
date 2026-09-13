@@ -6,6 +6,7 @@
   dr-check              the dynamic-range check from SEARCH_PLAN 0.4 on the prior g0 table
   gate --seed S         run this seed's cells (only those the prior run lacks for seeds 0-4)
   report gate           write results/gate/tables.md and fill FINDINGS_generator.md
+  report why --root D   the why model over a search directory's validated bridge rows
   freeze [--pilot] [--filter none|no_bridge|no_rl]   run component tests, write grammar/manifest.json
 """
 import argparse
@@ -87,8 +88,13 @@ def cmd_report(a):
         fill_findings(T, commit=git("rev-parse", "--short", "HEAD"))
         print("verdict:", dec["verdict"] if dec else "not available"); print("tables ->", settings.GATE / "tables.md")
         return
-    # search: rebuild the search state from a results directory and write the interim report
     from pathlib import Path
+    if a.what == "why":
+        from sb.search.why_report import why_report
+        txt, rows = why_report(Path(a.root))
+        print(f"why model over {len(rows)} validated bridge rows ->", Path(a.root) / "why_model.md")
+        return
+    # search: rebuild the search state from a results directory and write the interim report
     from sb.core.genome import Genome
     from sb.search.freeze import load_frozen
     from sb.search.loop import Search, dummy_evaluate
@@ -128,7 +134,7 @@ def main():
     g = sub.add_parser("gate"); g.add_argument("--seed", type=int, required=True); g.add_argument("--sources", default="")
     g.add_argument("--smoke", action="store_true"); g.add_argument("--allow-dirty", action="store_true"); g.add_argument("--skip-tests", action="store_true")
     g.add_argument("--cost", default="greedy", choices=["greedy", "track"]); g.set_defaults(f=cmd_gate)
-    r = sub.add_parser("report"); r.add_argument("what", choices=["gate", "search"]); r.add_argument("--root", default="results/search/mapelites")
+    r = sub.add_parser("report"); r.add_argument("what", choices=["gate", "search", "why"]); r.add_argument("--root", default="results/search/mapelites")
     r.add_argument("--pilot", action="store_true"); r.set_defaults(f=cmd_report)
     au = sub.add_parser("audit"); au.add_argument("--n", type=int, default=64); au.add_argument("--device", default=""); au.add_argument("--ids", default="")
     au.set_defaults(f=cmd_audit)
