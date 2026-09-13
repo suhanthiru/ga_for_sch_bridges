@@ -511,6 +511,11 @@ constraint, solver; dynamic SB and entropic OT separately), the tail-vs-mean cel
 (CVaR_0.1 gap >= 0.15 at equal mean) and the red-team maps follow the program text.
 The pilot has one family (E1, with E2 cells at rung 1+), so the pilot fits the model
 but cannot hold a family out; that number is reported as in-sample and not used.
+Clause indicators (`sb/stats/why_model.py`): (i) goal modality above 1; (ii) terrain
+information not "none" with partial observability (the reference knows the map, the
+controller does not); (iii) PD reachability of the target from the demos' first handoff
+below 0.5. The 2x2x2 table reports the mean validated delta with a t-interval per
+combination; H predicts a positive mean in the all-true cell only.
 
 ## 8. Engineering
 
