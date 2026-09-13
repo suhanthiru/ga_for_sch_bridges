@@ -16,6 +16,7 @@ import torch
 from sb import settings
 from sb.core.genome import ROOT
 from sb.core.substitute import ablate_bridges
+from sb.envs import task as TK
 from sb.envs import terrain as TR
 from sb.envs.base import Caps
 from sb.envs.gen_task import GenTask
@@ -156,7 +157,7 @@ class _Recorder:
         self.act, self.U = act, []
 
     def __call__(self, g, k, tau, step):
-        u, extra = self.act(g, k, tau, step); self.U.append(u.detach().clone()); return u, extra
+        u, extra = self.act(g, k, tau, step); self.U.append(TK.clip_u(u).detach().clone()); return u, extra
 
 
 @torch.no_grad()

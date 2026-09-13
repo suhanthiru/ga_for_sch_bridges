@@ -43,11 +43,15 @@ def check_episode_set(traj, actions, success, geo, oracle_time=None, oracle_ener
     """traj (n, T+1, 3); actions (n, T, 3); success (n,) bool. Returns dict invariant -> fraction."""
     n, T1, _ = traj.shape
     out = {}
+    # only segments where the robot moved: a robot frozen by the environment (or a start
+    # drawn outside the box) repeats its pose and is the environment's doing, not the policy's
+    moved = (traj[:, 1:] != traj[:, :-1]).any(2)
     hit = torch.zeros(n, dtype=torch.bool, device=traj.device)
     for s in range(T1 - 1):
-        hit |= segment_hits(traj[:, s, :2], traj[:, s + 1, :2], geo)
+        hit |= segment_hits(traj[:, s, :2], traj[:, s + 1, :2], geo) & moved[:, s]
     out["wall_penetration"] = float(hit.float().mean())
-    out["box_exit"] = float(((traj[:, :, :2] < 0) | (traj[:, :, :2] > 1)).any(2).any(1).float().mean())
+    outside = ((traj[:, 1:, :2] < 0) | (traj[:, 1:, :2] > 1)).any(2) & moved
+    out["box_exit"] = float(outside.any(1).float().mean())
     means, covs = geo.get("means"), geo.get("covs")
     if means is not None and covs is not None:
         md = S.mahalanobis(traj[:, -1].cpu(), means[-1], covs[-1])
