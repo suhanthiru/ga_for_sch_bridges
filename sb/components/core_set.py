@@ -118,6 +118,33 @@ class CtlBridgeDrift:
         return lambda g, k, tau, step: (act(g, k, int(tau[0] * TK.T_SKILL)), None)
 
 
+@component("controller.grid_bridge", ("controller",), params={"eps": P.loguniform(2e-3, 5e-2), "grid": P.choice([32, 64]), "iters": P.choice([50, 200]),
+           "kp_heading": P.loguniform(1.0, 10.0)}, tag="bridge", cost=dict(train_s_rung0=0.5, gpu=True),
+           axes=dict(role="bridge_drift", reference="heat_kernel", coupling="independent", marginal="hard_two", representation="grid_sinkhorn", family="entropic_ot"),
+           test=T + "test_controllers")
+class CtlGridBridge:
+    """Entropic-OT bridge on a grid between consecutive marginals, executed as a drift:
+    the potentials give the conditional mean displacement at each cell and time, turned
+    into a body twist with a heading PD toward the motion direction."""
+    def build(self, params, ctx):
+        from sb.core import grid_sinkhorn as GS
+        tk = ctx["task"]; dev = tk.device; G = int(params["grid"]); eps = float(params["eps"]); kp = float(params["kp_heading"])
+        mus = [GS.gaussian_marginal(G, (float(m[0]), float(m[1])), float(torch.diag(c)[:2].sqrt().mean()), dev) for m, c in zip(tk.means, tk.covs)]
+        sols = [GS.solve(mus[k][None], mus[k + 1][None], eps, int(params["iters"])) for k in range(TK.N_SKILL)]
+
+        def act(g, k, tau, step):
+            u_, v_, kern, _ = sols[k]
+            t = float(tau[0].clamp(0.0, 0.95))
+            field = GS.drift_field(u_, v_, kern, eps, tau=t)[0]                      # (G, G, 2) world units per unit time
+            ix = (g[:, 0] * G).long().clamp(0, G - 1); iy = (g[:, 1] * G).long().clamp(0, G - 1)
+            vw = field[iy, ix]                                                         # (n, 2) world-frame velocity
+            R = S.rot(-g[:, 2]); vb = torch.einsum("nij,nj->ni", R, vw)
+            head = torch.atan2(vw[:, 1], vw[:, 0]); dth = S.wrap(head - g[:, 2])
+            w = kp * dth * (vw.norm(dim=1) > 1e-3).float()
+            return torch.cat([vb, w[:, None]], 1), None
+        return act
+
+
 @component("controller.diffusion", ("controller",), params={"steps": P.choice([2000, 8000]), "hidden": P.choice([128, 256])},
            sub_slots={"data": SlotSpec("data", optional=False)}, cost=dict(gpu=True), test=T + "test_controllers")
 class CtlDiffusion:

@@ -54,6 +54,9 @@ def test_controllers(reg, ctx):
     assert u.shape == (8, 3)
     rec = _build(reg, "controller.ppo", dict(ctx, sub={"data": ctx["demos"]}))
     assert rec["kind"] == "ppo" and rec["data"][0].shape == ctx["demos"][0].shape
+    gb = _build(reg, "controller.grid_bridge", ctx, grid=32, iters=50, eps=0.01, kp_heading=4.0)
+    u, _ = gb(g, 0, tau, 20); assert u.shape == (8, 3) and torch.isfinite(u).all()
+    assert reg["controller.grid_bridge"].axes["family"] == "entropic_ot"
     spec = reg["controller.bridge_drift"]
     assert spec.tag == "bridge" and spec.axes["role"] == "bridge_drift" and "reference" in spec.params
 
