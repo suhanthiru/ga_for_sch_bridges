@@ -87,6 +87,16 @@ def cmd_report(a):
     print("verdict:", dec["verdict"] if dec else "not available"); print("tables ->", settings.GATE / "tables.md")
 
 
+def cmd_audit(a):
+    from pathlib import Path
+    from sb.envs.audit import audit, render
+    import torch
+    rows = audit(n=a.n, device=torch.device(a.device) if a.device else None, ids=a.ids.split(",") if a.ids else None)
+    out = Path(settings.ROOT / "findings" / "oracle_audit.md"); out.parent.mkdir(exist_ok=True)
+    out.write_text(render(rows, a.n), encoding="utf-8", newline="
+"); print("->", out)
+
+
 def cmd_freeze(a):
     from sb.search.freeze import freeze
     G, out = freeze(filt=a.filter, pilot=a.pilot, run_tests=not a.skip_tests)
@@ -103,6 +113,8 @@ def main():
     g.add_argument("--smoke", action="store_true"); g.add_argument("--allow-dirty", action="store_true"); g.add_argument("--skip-tests", action="store_true")
     g.add_argument("--cost", default="greedy", choices=["greedy", "track"]); g.set_defaults(f=cmd_gate)
     r = sub.add_parser("report"); r.add_argument("what", choices=["gate"]); r.set_defaults(f=cmd_report)
+    au = sub.add_parser("audit"); au.add_argument("--n", type=int, default=64); au.add_argument("--device", default=""); au.add_argument("--ids", default="")
+    au.set_defaults(f=cmd_audit)
     f = sub.add_parser("freeze"); f.add_argument("--pilot", action="store_true"); f.add_argument("--filter", default="none", choices=["none", "no_bridge", "no_rl"])
     f.add_argument("--skip-tests", action="store_true"); f.set_defaults(f=cmd_freeze)
     a = ap.parse_args(); a.f(a)
