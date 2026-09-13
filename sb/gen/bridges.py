@@ -56,7 +56,7 @@ def get_bridges(kind, tk, layout, seed, device, models_dir, tag="", mf=S.SE2, cf
                     fields=tkc.obs_fields, body_cov=ref_body.to(cpu) if ref_body is not None else None)
     nets = {}
     for k in range(TK.N_SKILL):
-        nets[k], _ = SV.train_skill(tkc, k, ref, mf, seed * 17 + k, cpu, K=0, log=lambda m: None, with_bwd=False, **cfg)
+        nets[k], _ = SV.train_skill(tkc, k, ref, mf, seed * 17 + k, cpu, K=0, log=lambda m: None, **dict(dict(with_bwd=False), **cfg))
     nets = {k: {key: {pn: t.to(device) for pn, t in sd.items()} for key, sd in n_.items()} for k, n_ in nets.items()}
     p.parent.mkdir(parents=True, exist_ok=True)
     torch.save(nets, p)

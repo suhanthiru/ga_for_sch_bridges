@@ -155,3 +155,18 @@ def test_seam_width_scales_the_bridge_and_is_cached_per_level(tmp_path):
     assert quantise_width(1.3) == 1.0 and quantise_width(1.5) == 2.0 and quantise_width(0.3) == 0.25 and quantise_width(3.9) == 4.0
     p1 = bridge_path(tmp_path, "slip", "L1", 0, "", cfg=BRIDGE_CFG); p2 = bridge_path(tmp_path, "slip", "L1", 0, "_w2", cfg=BRIDGE_CFG)
     assert p1 != p2 and "_w2" in p2.name
+
+
+def test_search_bridge_cache_trains_the_backward_drift_and_exposes_d(cpu, tmp_path):
+    from sb.core import se2 as S
+    from sb.core import solver as SV
+    from sb.envs import terrain as TR
+    from sb.envs.gen_task import GenTask
+    from sb.gen.bridges import SEARCH_BRIDGE_CFG, get_bridges
+    tk = GenTask(TR.Layout("L1"), "none", 8, 1, cpu)
+    tiny = dict(SEARCH_BRIDGE_CFG, n_pair=32, steps0=2, steps_ipf=1, batch=16, n_sim=2)
+    nets = get_bridges("slip", tk, "L1", 0, cpu, tmp_path, mf=S.SE2, cfg=tiny, width=2.0)
+    assert (0, "bwd") in nets[0] and any("_w2" in p.name for p in tmp_path.iterdir())
+    ctl = SV.BridgeController(nets, S.SE2, tk, 0, cpu, with_D=True)
+    u, extra = ctl(tk.sample(0, 4), 0, torch.full((4,), 0.3), 0)
+    assert u.shape == (4, 3) and extra.shape == (4, 2) and torch.isfinite(extra).all()
