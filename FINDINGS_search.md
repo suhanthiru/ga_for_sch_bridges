@@ -1,7 +1,7 @@
 # Search findings
 
-Status: pilot tranche 1 running (restarted 2026-09-14 under grammar_pilot
-fbdc81b728f586f2 after the seam and trigger slots were wired, PLAN_CHANGES 2026-09-14;
+Status: pilot tranche 1 running (restarted 2026-09-13 under grammar_pilot
+089779d1295a3a33 after the seam and trigger slots were wired, PLAN_CHANGES 2026-09-13;
 the first start under ef0314e95a24074f was stopped with an empty archive and is kept as
 `results/search/pilot_t1_aborted_ef0314e9`). 1 000 rung-0 evaluations on the eight
 fixed cells. Interim reports go to

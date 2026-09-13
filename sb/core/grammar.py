@@ -28,7 +28,7 @@ ROOT_SLOTS = {
     "adapt": SlotSpec("adapt"),
 }
 ORACLE_SLOTS = ("data", "value")
-# the pilot's root slots: the ones a compiled stack consumes (PLAN_CHANGES 2026-09-14). The
+# the pilot's root slots: the ones a compiled stack consumes (PLAN_CHANGES 2026-09-13). The
 # others remain slot types (data is a controller sub-slot) and return as root slots once wired.
 PILOT_ROOT_SLOTS = {k: v for k, v in ROOT_SLOTS.items() if k in ("manifold", "seam", "controller", "trigger", "noise", "safety")}
 FLAGS = {"time_reversed": (False, True), "drift_blend": (False, True), "density_gating": (False, True),

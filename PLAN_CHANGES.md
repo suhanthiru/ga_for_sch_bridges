@@ -116,7 +116,7 @@ rung-2 ablations of the program.
 
 Affected evaluations: none invalidated; the probe rows carry the pilot manifest hash.
 
-## 2026-09-14 — tranche 1 stopped before any row; seam and trigger wired; pilot root slots restricted
+## 2026-09-13 — tranche 1 stopped before any row; seam and trigger wired; pilot root slots restricted
 
 Evidence: the pilot manifest ef0314e95a24074f carried seam, trigger and estimator
 components whose build returned a description and nothing consumed it (the probe's
