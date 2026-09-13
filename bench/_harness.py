@@ -33,6 +33,15 @@ def machine_info():
         info["triton"] = triton.__version__
     except Exception:
         info["triton"] = None
+    try:                                   # other work on the GPU at start: the plan labels such runs shared_gpu
+        q = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,memory.used", "--format=csv,noheader,nounits"],
+                           capture_output=True, text=True, timeout=10).stdout.strip().split(",")
+        info["gpu_util_at_start"] = int(q[0]); info["gpu_mem_used_at_start_mb"] = int(q[1])
+        apps = subprocess.run(["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], capture_output=True, text=True, timeout=10).stdout
+        info["gpu_compute_apps_at_start"] = len([l for l in apps.splitlines() if l.strip()])
+        info["shared_gpu"] = info["gpu_util_at_start"] > 8
+    except Exception:
+        info["shared_gpu"] = None
     return info
 
 
