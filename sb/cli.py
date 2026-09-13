@@ -6,6 +6,7 @@
   dr-check              the dynamic-range check from SEARCH_PLAN 0.4 on the prior g0 table
   gate --seed S         run this seed's cells (only those the prior run lacks for seeds 0-4)
   report gate           write results/gate/tables.md and fill FINDINGS_generator.md
+  freeze [--pilot] [--filter none|no_bridge|no_rl]   run component tests, write grammar/manifest.json
 """
 import argparse
 import json
@@ -86,6 +87,12 @@ def cmd_report(a):
     print("verdict:", dec["verdict"] if dec else "not available"); print("tables ->", settings.GATE / "tables.md")
 
 
+def cmd_freeze(a):
+    from sb.search.freeze import freeze
+    G, out = freeze(filt=a.filter, pilot=a.pilot, run_tests=not a.skip_tests)
+    print(f"frozen {len(G.registry)} components, hash {G.hash} -> {out}")
+
+
 def main():
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("demos").set_defaults(f=cmd_demos)
@@ -96,6 +103,8 @@ def main():
     g.add_argument("--smoke", action="store_true"); g.add_argument("--allow-dirty", action="store_true"); g.add_argument("--skip-tests", action="store_true")
     g.add_argument("--cost", default="greedy", choices=["greedy", "track"]); g.set_defaults(f=cmd_gate)
     r = sub.add_parser("report"); r.add_argument("what", choices=["gate"]); r.set_defaults(f=cmd_report)
+    f = sub.add_parser("freeze"); f.add_argument("--pilot", action="store_true"); f.add_argument("--filter", default="none", choices=["none", "no_bridge", "no_rl"])
+    f.add_argument("--skip-tests", action="store_true"); f.set_defaults(f=cmd_freeze)
     a = ap.parse_args(); a.f(a)
 
 
