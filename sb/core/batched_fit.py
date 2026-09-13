@@ -39,13 +39,17 @@ class Population:
 
 
 def _adam_step(params, grads, m, v, t, lr, b1=0.9, b2=0.999, eps=1e-8):
-    for k in params:
-        g = grads[k]
-        m[k].mul_(b1).add_(g, alpha=1 - b1)
-        v[k].mul_(b2).addcmul_(g, g, value=1 - b2)
-        mhat = m[k] / (1 - b1 ** t); vhat = v[k] / (1 - b2 ** t)
-        step = lr.view(-1, *([1] * (g.dim() - 1))) * mhat / (vhat.sqrt() + eps)
-        params[k] = params[k] - step
+    """Adam on stacked (P, ...) tensors with a per-member learning rate, in place (the
+    parameter buffers keep their addresses, which a CUDA-graph replay relies on). `t` may
+    be an int or a 0-d tensor."""
+    c1 = 1 - b1 ** t; c2 = 1 - b2 ** t
+    with torch.no_grad():
+        for k in params:
+            g = grads[k]
+            m[k].mul_(b1).add_(g, alpha=1 - b1)
+            v[k].mul_(b2).addcmul_(g, g, value=1 - b2)
+            step = lr.view(-1, *([1] * (g.dim() - 1))) * (m[k] / c1) / ((v[k] / c2).sqrt() + eps)
+            params[k].sub_(step)
 
 
 def fit_population(nets, pairs, ref, mf, goal, fields, steps, batch=512, lr=1e-3, gen=None, autocast=False, backward=False):

@@ -112,7 +112,7 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
         ppo.warm_start_bc(tk, G, U, gen=gen, obs_fn=obs_fn)
     obs = env.reset()
     for _ in range(max(1, steps // (n_envs * rollout))):
-        obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=1024, gen=gen)
+        obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=1024, gen=gen, graphed=(device.type == "cuda"))
     base, bound = recipe.get("base"), recipe.get("bound", 0.3)
 
     def ctl(g, k, tau, step):

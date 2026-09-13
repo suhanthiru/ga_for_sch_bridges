@@ -27,3 +27,24 @@ def test_log_prob_matches_torch_normal(cpu):
     mu = torch.randn(2, 5, 3); ls = torch.randn(2, 3) * 0.1; a = torch.randn(2, 5, 3)
     ref = torch.distributions.Normal(mu, ls.exp()[:, None, :]).log_prob(a).sum(-1)
     assert torch.allclose(ppo.log_prob(mu, ls, a), ref, atol=1e-6)
+
+
+def test_graphed_update_is_reproducible_and_matches_the_eager_path_in_shape():
+    import pytest
+    if not torch.cuda.is_available():
+        pytest.skip("needs a GPU")
+    dev = torch.device("cuda"); P, n = 2, 16
+    outs = []
+    for _ in range(2):
+        tk = GenTask(TR.Layout("L1"), "slip", P * n, 3, dev)
+        env = PopEnv(tk, P, n); ppo = PopPPO(P, dev, hidden=32, depth=2, seed=0, autocast=True)
+        obs = env.reset(); gen = torch.Generator(device=dev).manual_seed(0)
+        for _ in range(4):
+            obs, info = ppo.update(env, obs, rollout=8, epochs=2, minibatch=64, gen=gen, graphed=True)
+        assert len(ppo.graphs) == 1 and obs.shape == (P * n, 24) and info["success"].shape == (P,)
+        outs.append({k: v.clone() for k, v in ppo.params.items()})
+    assert all(torch.equal(outs[0][k], outs[1][k]) for k in outs[0])
+    assert all(torch.isfinite(v).all() for v in outs[0].values())
+    tk = GenTask(TR.Layout("L1"), "slip", P * n, 3, dev); env = PopEnv(tk, P, n); ppo = PopPPO(P, dev, hidden=32, depth=2, seed=0)
+    obs = env.reset(); obs, info = ppo.update(env, obs, rollout=8, epochs=2, minibatch=64, gen=torch.Generator(device=dev).manual_seed(0), graphed=False)
+    assert obs.shape == (P * n, 24) and float(ppo.t_adam) == 4
