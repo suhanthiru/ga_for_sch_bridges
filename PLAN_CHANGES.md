@@ -115,3 +115,34 @@ beats the bridge drift, exactly as the prior findings said. They stand as the fi
 rung-2 ablations of the program.
 
 Affected evaluations: none invalidated; the probe rows carry the pilot manifest hash.
+
+## 2026-09-14 — tranche 1 stopped before any row; seam and trigger wired; pilot root slots restricted
+
+Evidence: the pilot manifest ef0314e95a24074f carried seam, trigger and estimator
+components whose build returned a description and nothing consumed it (the probe's
+elites show them as inert genes). Tranche 1 was stopped ten minutes in with an empty
+archive; no evaluation is affected.
+
+Changes, all before any pilot row:
+- seam: `marginal_cloud` width and `waypoint` (width 0.25) scale the handoff marginals
+  rho_1, rho_2 the bridge is trained between; the neural cache trains per width level
+  (powers of two, so a continuous width is not a per-mutant solve) and the grid bridge
+  uses the width as given. `fixed_clock` is width 1.
+- trigger: `distance` restarts a robot's skill clock when its body-frame distance to the
+  reference geodesic exceeds thr, re-anchoring the geodesic at the pose of restart;
+  `bridge_disagreement` does the same on the forward/backward drift disagreement D,
+  which only a neural bridge controller exposes; over any other controller it never
+  fires and is counted as such. The cached search nets therefore carry the backward
+  drift (SEARCH_BRIDGE_CFG; the gate's BRIDGE_CFG and its cache are untouched).
+- pilot root slots are the six a compiled stack consumes: manifold, seam, controller,
+  trigger, noise, safety. reference, planner, value, augment, time_split, estimator and
+  adapt remain slot types for the main manifest and return as root slots once wired
+  (stage C); data is a controller sub-slot already.
+- the manifest carries a hash of the component sources, so a code change in a
+  component's behaviour invalidates the freeze even when its declared spec is unchanged.
+
+The pilot is re-frozen (new hash recorded in SEARCH_PLAN 2.10) and tranche 1 restarts
+from an empty archive. This is a change to what is being searched, permitted because
+no search row exists under the old manifest; the probe rows keep the old hash.
+
+Affected evaluations: none.

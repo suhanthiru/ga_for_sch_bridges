@@ -139,3 +139,13 @@ def test_rl_never_nests_inside_rl(reg):
                   Node("d", "controller.pd", (("kp", 6.0),))),
                  (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge("b", "base", "c"), Edge("c", "base", "d")))
     assert any("inside RL" in v for v in G.validate(bad))
+
+
+def test_manifest_carries_a_source_hash_and_the_pilot_roots_are_the_consumed_slots():
+    from sb.components import load_all
+    from sb.core.grammar import PILOT_ROOT_SLOTS
+    G = Grammar(load_all()); man = G.manifest()
+    assert len(man["source"]) == 16 and man["source"] == Grammar.source_hash()
+    assert set(PILOT_ROOT_SLOTS) == {"manifold", "seam", "controller", "trigger", "noise", "safety"}
+    P = Grammar(load_all(), root_slots=PILOT_ROOT_SLOTS)
+    assert P.hash != G.hash and set(P.manifest()["slots"]) == set(PILOT_ROOT_SLOTS)

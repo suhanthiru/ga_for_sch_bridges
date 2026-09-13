@@ -13,7 +13,7 @@ import numpy as np
 
 from sb import settings
 from sb.components import load_all
-from sb.core.grammar import NO_BRIDGE, NO_RL, Grammar
+from sb.core.grammar import NO_BRIDGE, NO_RL, PILOT_ROOT_SLOTS, ROOT_SLOTS, Grammar
 from sb.core.novelty import SeedSet
 from sb.core.substitute import coverage_check
 
@@ -31,7 +31,7 @@ def freeze(out_dir=None, filt="none", n_random=200, seed=0, run_tests=True, pilo
     missing = [k for k, s in reg.items() if not s.test]
     if missing:
         raise SystemExit(f"components without a test are not in the grammar: {missing}")
-    G = Grammar(reg, filt=FILTERS[filt])
+    G = Grammar(reg, root_slots=PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS, filt=FILTERS[filt])
     problems = coverage_check(G)
     if problems:
         raise SystemExit("substitution table incomplete:\n" + "\n".join(problems))
@@ -59,9 +59,9 @@ def load_frozen(out_dir=None, pilot=False):
     out = Path(out_dir or settings.ROOT / ("grammar_pilot" if pilot else "grammar"))
     man = json.loads((out / "manifest.json").read_text())
     reg = dict(load_all())
-    G = Grammar(reg, filt=FILTERS[man["filter"]])
+    G = Grammar(reg, root_slots=PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS, filt=FILTERS[man["filter"]])
     if G.hash != man["hash"]:
         raise SystemExit(f"registry hash {G.hash} differs from the frozen manifest {man['hash']}; the grammar changed after the freeze")
     for d in json.loads((out / "disabled.json").read_text()):
         reg[d["key"]] = replace(reg[d["key"]], disabled=d["reason"])
-    return Grammar(reg, filt=FILTERS[man["filter"]]), man
+    return Grammar(reg, root_slots=PILOT_ROOT_SLOTS if pilot else ROOT_SLOTS, filt=FILTERS[man["filter"]]), man

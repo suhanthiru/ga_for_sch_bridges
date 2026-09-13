@@ -28,6 +28,9 @@ ROOT_SLOTS = {
     "adapt": SlotSpec("adapt"),
 }
 ORACLE_SLOTS = ("data", "value")
+# the pilot's root slots: the ones a compiled stack consumes (PLAN_CHANGES 2026-09-14). The
+# others remain slot types (data is a controller sub-slot) and return as root slots once wired.
+PILOT_ROOT_SLOTS = {k: v for k, v in ROOT_SLOTS.items() if k in ("manifold", "seam", "controller", "trigger", "noise", "safety")}
 FLAGS = {"time_reversed": (False, True), "drift_blend": (False, True), "density_gating": (False, True),
          "marginal_annealing": (False, True), "cost_in": ("objective", "reference"), "per_skill_eps": (False, True),
          "bridge_of_bridges": (False, True), "sampling": ("sde", "ode"), "learned_intermediates": (False, True),
@@ -79,11 +82,24 @@ class Grammar:
     def innov(self, parent_comp, slot, child_comp):
         return self.innovation_table().get((ROOT if parent_comp is None else parent_comp, slot, child_comp), -1)
 
+    @staticmethod
+    def source_hash():
+        """sha256 over the component sources and this module: code drift in a component is a
+        grammar change even when its declared spec is unchanged."""
+        import glob
+        from pathlib import Path
+        here = Path(__file__).resolve().parent.parent
+        files = sorted(glob.glob(str(here / "components" / "*.py"))) + [str(here / "core" / "grammar.py"), str(here / "core" / "substitute.py")]
+        h = hashlib.sha256()
+        for f in files:
+            h.update(Path(f).read_bytes())
+        return h.hexdigest()[:16]
+
     def manifest(self):
         m = dict(slots={k: [v.type, v.optional] for k, v in self.root_slots.items()}, flags={k: list(v) for k, v in self.flags.items()},
                  components=[s.manifest() for s in sorted(self.registry.values(), key=lambda s: s.key)],
                  innovation=[[list(k), v] for k, v in sorted(self.innovation_table().items(), key=lambda kv: kv[1])],
-                 filter=getattr(self.filt, "__name__", "none") if self.filt else "none")
+                 filter=getattr(self.filt, "__name__", "none") if self.filt else "none", source=self.source_hash())
         return m
 
     @property

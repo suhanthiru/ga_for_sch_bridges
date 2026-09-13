@@ -75,20 +75,29 @@ class PlannerSpline(RefSpline):
 # ---------------------------------------------------------------------- seam
 @component("seam.fixed_clock", ("seam",), test=T + "test_seams")
 class SeamFixedClock:
+    """The registered handoff marginals as they are (width 1); the clock hands off at fixed steps."""
     def build(self, params, ctx):
-        return dict(kind="fixed_clock")
+        return dict(kind="fixed_clock", width=1.0)
 
 
 @component("seam.waypoint", ("seam",), test=T + "test_seams")
 class SeamWaypoint:
+    """A point handoff: the bridge's handoff marginals shrink to a quarter width."""
     def build(self, params, ctx):
-        return dict(kind="waypoint")
+        return dict(kind="waypoint", width=0.25)
 
 
 @component("seam.marginal_cloud", ("seam",), params={"width": P.loguniform(0.25, 4.0)}, test=T + "test_seams")
 class SeamCloud:
+    """A cloud handoff: the bridge is trained between handoff marginals scaled by `width`
+    (the seam suite's knob). Controllers that track the mean path are unaffected."""
     def build(self, params, ctx):
         return dict(kind="cloud", width=float(params["width"]))
+
+
+def seam_width(ctx):
+    seam = ctx.get("seam") or {}
+    return float(seam.get("width", 1.0))
 
 
 # ---------------------------------------------------------------- controller
@@ -115,11 +124,13 @@ class CtlBridgeDrift:
     trained once at BRIDGE_CFG for the chosen reference; the solver flags among the
     parameters are honoured at rung 2 only."""
     def build(self, params, ctx):
-        from sb.gen.bridges import get_bridges
-        from sb.gen.controllers import bridge_act
-        tk = ctx["task"]; nets = get_bridges(params["reference"], tk, tk.layout.name, ctx.get("seed", 0), tk.device, ctx["models"], mf=ctx["manifold"])
-        act = bridge_act(nets, ctx["manifold"], tk)
-        return lambda g, k, tau, step: (act(g, k, int(tau[0] * TK.T_SKILL)), None)
+        from sb.core import solver as SV
+        from sb.gen.bridges import SEARCH_BRIDGE_CFG, get_bridges
+        tk = ctx["task"]
+        nets = get_bridges(params["reference"], tk, tk.layout.name, ctx.get("seed", 0), tk.device, ctx["models"], mf=ctx["manifold"],
+                           cfg=SEARCH_BRIDGE_CFG, width=seam_width(ctx))
+        # (g, k, tau, step) -> (u, extra); extra[:, 0] is the forward/backward disagreement D
+        return SV.BridgeController(nets, ctx["manifold"], tk, 0, tk.device, with_D=True)
 
 
 @component("controller.grid_bridge", ("controller",), params={"eps": P.loguniform(2e-3, 5e-2), "grid": P.choice([32, 64]), "iters": P.choice([50, 200]),
@@ -133,7 +144,9 @@ class CtlGridBridge:
     def build(self, params, ctx):
         from sb.core import grid_sinkhorn as GS
         tk = ctx["task"]; dev = tk.device; G = int(params["grid"]); eps = float(params["eps"]); kp = float(params["kp_heading"])
-        mus = [GS.gaussian_marginal(G, (float(m[0]), float(m[1])), float(torch.diag(c)[:2].sqrt().mean()), dev) for m, c in zip(tk.means, tk.covs)]
+        w = seam_width(ctx)
+        mus = [GS.gaussian_marginal(G, (float(m[0]), float(m[1])), float(torch.diag(c)[:2].sqrt().mean()) * (w if 0 < i < 3 else 1.0), dev)
+               for i, (m, c) in enumerate(zip(tk.means, tk.covs))]
         sols = [GS.solve(mus[k][None], mus[k + 1][None], eps, int(params["iters"])) for k in range(TK.N_SKILL)]
 
         def act(g, k, tau, step):
@@ -231,6 +244,9 @@ class TrigDistance:
 @component("trigger.bridge_disagreement", ("trigger",), params={"thr": P.loguniform(0.05, 1.0)}, tag="bridge",
            axes=dict(role="bridge_disagreement"), test=T + "test_small_slots")
 class TrigDisagreement:
+    """Restarts the skill clock where the controller's forward/backward drift disagreement
+    D exceeds thr. Only a neural bridge controller exposes D; over any other controller
+    the trigger never fires (recorded as such, not silently replaced by distance)."""
     def build(self, params, ctx):
         return dict(kind="disagreement", thr=float(params["thr"]))
 
@@ -267,7 +283,8 @@ class ValueDistance:
 
 @component("estimator.ekf", ("estimator",), params={"window": P.int_uniform(10, 100)}, test=T + "test_small_slots")
 class EstimatorEKF:
-    """Running estimate of the local slip covariance from displacement residuals."""
+    """Running estimate of the local slip covariance from displacement residuals. Not a
+    pilot root slot: nothing consumes it yet (stage C wires it into the observation)."""
     def build(self, params, ctx):
         return dict(kind="ekf", window=int(params["window"]))
 

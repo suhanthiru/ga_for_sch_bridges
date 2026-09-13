@@ -124,3 +124,34 @@ def test_cell_from_vector_maps_bins_to_the_evaluator():
     from sb.envs.family import AXES, descriptor_vector
     with pytest.raises(ValueError):
         cell_from_vector(descriptor_vector(dict(env="E4")))
+
+
+def test_distance_trigger_restarts_the_clock_of_a_robot_off_the_reference(cpu, small_demos, tmp_path):
+    G = Grammar(load_all())
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.pd", (("kp", 6.0),)), Node("c", "trigger.distance", (("thr", 0.05),)))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge(ROOT, "trigger", "c"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    from sb.envs import terrain as TR
+    from sb.envs.gen_task import GenTask
+    from sb.envs.base import Caps
+    from sb.envs import task as TK
+    tk = GenTask(TR.Layout("L1"), "none", 8, 1, cpu)
+    st = Stack(g, G, tk, small_demos, tmp_path, 0, Caps())
+    from sb.core import se2 as S
+    t = TK.T_SKILL // 2
+    x = S.SE2.interp(tk.means[0].expand(8, 3), tk.means[1].expand(8, 3), torch.full((8,), t / TK.T_SKILL)).clone()
+    x[4:, 0] += 0.3                                                       # four robots on the reference, four far off it
+    tau, fire = st._replan_clock(x, 0, None, t, None)
+    assert fire.tolist() == [False] * 4 + [True] * 4
+    assert torch.allclose(tau[:4], torch.full((4,), t / TK.T_SKILL)) and torch.all(tau[4:] == 0)
+    tau2, _ = st._replan_clock(x, 0, None, t + 5, None)                 # the restarted clocks advance from the restart
+    assert torch.allclose(tau2[4:], torch.full((4,), 5 / TK.T_SKILL))
+    u, _ = st.act(x, 0, torch.zeros(8), t)
+    assert u.shape == (8, 3)
+
+
+def test_seam_width_scales_the_bridge_and_is_cached_per_level(tmp_path):
+    from sb.gen.bridges import BRIDGE_CFG, bridge_path, quantise_width
+    assert quantise_width(1.3) == 1.0 and quantise_width(1.5) == 2.0 and quantise_width(0.3) == 0.25 and quantise_width(3.9) == 4.0
+    p1 = bridge_path(tmp_path, "slip", "L1", 0, "", cfg=BRIDGE_CFG); p2 = bridge_path(tmp_path, "slip", "L1", 0, "_w2", cfg=BRIDGE_CFG)
+    assert p1 != p2 and "_w2" in p2.name

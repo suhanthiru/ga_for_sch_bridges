@@ -14,6 +14,7 @@ import numpy as np
 import torch
 
 from sb import settings
+from sb.core import se2 as S
 from sb.core.genome import ROOT
 from sb.core.substitute import ablate_bridges
 from sb.envs import task as TK
@@ -135,15 +136,37 @@ class Stack:
         self.obs_fn, self.obs_dim = obs_fn, obs_dim
         self.built = {}
         self.manifold = self._build_slot(ROOT, "manifold")
+        self.seam = self._build_slot(ROOT, "seam")                 # before the controller: bridges read the width
         self.controller = self._build_slot(ROOT, "controller")
         self.safety = self._build_slot(ROOT, "safety") or (lambda u: u)
         self.noise = self._build_slot(ROOT, "noise")
-        self.trigger = self._build_slot(ROOT, "trigger"); self.seam = self._build_slot(ROOT, "seam")
+        self.trigger = self._build_slot(ROOT, "trigger")
         self.value = self._build_slot(ROOT, "value")
+        self._offset, self._anchor, self._last_k = None, None, -1
 
     def _ctx(self, sub):
         return dict(task=self.task, demos=self.demos, models=self.models, seed=self.seed, manifold=getattr(self, "manifold", None), sub=sub, caps=self.caps,
-                    obs_fn=self.obs_fn, obs_dim=self.obs_dim)
+                    obs_fn=self.obs_fn, obs_dim=self.obs_dim, seam=getattr(self, "seam", None))
+
+    def _replan_clock(self, g, k, tau, step, extra):
+        """Trigger slot: restart the skill clock of a robot whose deviation from the
+        reference exceeds the threshold (distance) or whose bridge disagreement does."""
+        n = g.shape[0]; T = TK.T_SKILL; tk = self.task
+        t = step % T
+        if self._offset is None or self._offset.shape[0] != n or k != self._last_k or t == 0:
+            self._offset = torch.zeros(n, device=g.device); self._last_k = k
+            self._anchor = tk.means[k].expand_as(g).clone()       # the restarted reference runs from the pose at restart
+        tau_eff = ((t - self._offset) / T).clamp(0.0, 0.99)
+        trig = self.trigger
+        if trig["kind"] == "distance":
+            ref = S.SE2.interp(self._anchor, tk.means[k + 1].expand_as(g), tau_eff)
+            dev = S.between(g, ref)[:, :2].norm(dim=1)
+        else:                                                     # disagreement: needs the bridge's extra
+            dev = extra[:, 0] if extra is not None else torch.zeros(n, device=g.device)
+        fire = dev > trig["thr"]
+        self._offset = torch.where(fire, torch.full_like(self._offset, float(t)), self._offset)
+        self._anchor = torch.where(fire[:, None], g, self._anchor)
+        return ((t - self._offset) / T).clamp(0.0, 0.99), fire
 
     def _build_slot(self, parent, slot):
         nid = self.g.child_in(parent, slot)
@@ -164,7 +187,15 @@ class Stack:
         ctl = self.controller
         if isinstance(ctl, dict):                            # RL placeholders are trained by the evaluator, not here
             raise RuntimeError("RL controllers are trained by evaluate(); compile got an untrained one")
-        u, extra = ctl(g, k, tau, step)
+        if self.trigger is not None:
+            tau, _ = self._replan_clock(g, k, tau, step, None)
+            u, extra = ctl(g, k, tau, step)
+            if self.trigger["kind"] != "distance":
+                tau2, _ = self._replan_clock(g, k, tau, step, extra)
+                if not torch.equal(tau2, tau):
+                    u, extra = ctl(g, k, tau2, step)
+        else:
+            u, extra = ctl(g, k, tau, step)
         if self.noise is not None:
             sig = self.noise["sigma"] if self.noise["kind"] == "fixed" else self.noise["sigmas"][min(k, 2)]
             u = u + sig * torch.randn_like(u)
