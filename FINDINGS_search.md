@@ -3,8 +3,10 @@
 Status: pilot tranche 1 running (restarted 2026-09-13 under grammar_pilot
 e80941e5402d6fe3 after the seam and trigger slots were wired and the drift controller's
 solver flags made real, PLAN_CHANGES 2026-09-13; the earlier starts were stopped with
-(near-)empty archives and are kept as `results/search/pilot_t1_aborted_*`). 1 000
-rung-0 evaluations on the eight fixed cells. Interim reports go to
+(near-)empty archives and are kept as `results/search/pilot_t1_aborted_*`; the last of
+them, 20 evaluations under the eager trainers, was restarted on the graph-captured PPO
+and diffusion trainers at commit 47e278e, same manifest). 1 000 rung-0 evaluations on
+the eight fixed cells. Interim reports go to
 `findings/search_interim_<n>.md` from `python -m sb.cli report search --pilot --root
 results/search/pilot_t1`; this file is filled in the order below when a tranche ends.
 Every number comes from `sb.stats` or the archive census functions in
