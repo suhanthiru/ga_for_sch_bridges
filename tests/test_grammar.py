@@ -109,3 +109,19 @@ def test_param_specs_sample_mutate_and_clip():
     assert isinstance(it.mutate(3, rng), int) and 1 <= it.mutate(5, rng) <= 5
     ch = P.choice(["a", "b"], p_flip=1.0)
     assert ch.mutate("zzz", rng) in ("a", "b") and not ch.valid("zzz")
+
+
+def test_innovation_crossover_and_speciation_distance(reg):
+    G = Grammar(reg); rng = np.random.default_rng(5)
+    for _ in range(30):
+        a, b = G.random_genome(rng, 0.9), G.random_genome(rng, 0.9)
+        c = G.crossover_innov(a, b, 0.7, 0.4, rng)
+        assert G.validate(c) == [], G.validate(c)
+        assert c.provenance.op == "xover_innov" and c.provenance.parent_ids == (a.gid, b.gid)
+        assert c.innovs() <= (a.innovs() | b.innovs())
+    a = G.random_genome(rng, 0.9)
+    assert G.compat_distance(a, a) == 0.0
+    m = G.mutate(a, rng, "param")
+    assert 0.0 <= G.compat_distance(a, m) < 1.0
+    r = G.mutate(G.mutate(a, rng, "replace"), rng, "fill")
+    assert G.compat_distance(a, r) >= G.compat_distance(a, m) or G.compat_distance(a, r) > 0

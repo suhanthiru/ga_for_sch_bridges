@@ -244,6 +244,58 @@ class Grammar:
         out = Genome(tuple(nodes), tuple(edges), a.flags if rng.random() < 0.5 else b.flags, prov, self.hash)
         return out.canonical(self.slot_order)
 
+    def crossover_innov(self, a, b, fit_a, fit_b, rng):
+        """NEAT-style: edges are aligned by innovation number. A slot both parents fill
+        with the same component takes its subtree from either at random; slots only one
+        parent fills (disjoint / excess) come from the fitter parent. Valid by
+        construction because equal innovation means equal (parent, slot, child)."""
+        fitter, other = (a, b) if fit_a >= fit_b else (b, a)
+        nodes, edges = [], []
+
+        def rec(pa, pb, parent_new, prefix):
+            """pa: node id in the fitter parent (or ROOT), pb: the matching node in the other (or None)."""
+            ea = {e.slot: e for e in fitter.children(pa)}; eb = {e.slot: e for e in other.children(pb)} if pb is not None else {}
+            for slot, e in ea.items():
+                m = eb.get(slot)
+                if m is not None and m.innov == e.innov and rng.random() < 0.5:
+                    n = other.node(m.child); new = prefix + "b" + m.child
+                    nodes.append(replace(n, nid=new)); edges.append(Edge(parent_new, slot, new, m.innov))
+                    rec2(other, m.child, new, prefix + "b")
+                else:
+                    n = fitter.node(e.child); new = prefix + "a" + e.child
+                    nodes.append(replace(n, nid=new)); edges.append(Edge(parent_new, slot, new, e.innov))
+                    rec(e.child, m.child if (m is not None and m.innov == e.innov) else None, new, prefix + "a")
+
+        def rec2(src, nid, parent_new, prefix):
+            for c in src.children(nid):
+                n = src.node(c.child); new = prefix + c.child
+                nodes.append(replace(n, nid=new)); edges.append(Edge(parent_new, c.slot, new, c.innov))
+                rec2(src, c.child, new, prefix)
+
+        rec(ROOT, ROOT, ROOT, "")
+        prov = Provenance(parent_ids=(fitter.gid, other.gid), op="xover_innov")
+        out = Genome(tuple(nodes), tuple(edges), fitter.flags, prov, self.hash)
+        return out.canonical(self.slot_order)
+
+    def compat_distance(self, a, b, c1=1.0, c2=0.5):
+        """Speciation distance: c1 x |innovation symmetric difference| + c2 x mean parameter
+        distance (log-space where declared) over nodes both genomes have at the same edge."""
+        ia, ib = a.innovs(), b.innovs()
+        struct = len(ia ^ ib)
+        ea = {e.innov: e.child for e in a.edges}; eb = {e.innov: e.child for e in b.edges}
+        ds = []
+        for inn in ia & ib:
+            na, nb = a.node(ea[inn]), b.node(eb[inn]); spec = self.spec(na.comp)
+            pa, pb = dict(na.params), dict(nb.params)
+            for k, p in spec.params.items():
+                if p.kind == "choice":
+                    ds.append(0.0 if pa[k] == pb[k] else 1.0)
+                elif p.kind == "log":
+                    ds.append(abs(np.log10(pa[k]) - np.log10(pb[k])) / max(np.log10(p.hi) - np.log10(p.lo), 1e-9))
+                else:
+                    ds.append(abs(pa[k] - pb[k]) / max(p.hi - p.lo, 1e-9))
+        return c1 * struct + c2 * (float(np.mean(ds)) if ds else 0.0)
+
     def _copy_subtree(self, src, nid, parent, slot, nodes, edges, prefix):
         n = src.node(nid); new = prefix + nid
         nodes.append(replace(n, nid=new))
