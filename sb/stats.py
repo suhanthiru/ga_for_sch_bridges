@@ -208,7 +208,8 @@ def _disturbed(cs):
 
 def gate_decision(primary, relabel, iso_pd, n_cells=6, q=Q_FDR):
     """SEARCH_PLAN 0.6, literally, from BH-corrected contrast lists:
-    primary = F1 BRIDGE-slip - PD-noise, relabel = F4 MPC-relabel - BRIDGE-slip,
+    primary = F1 BRIDGE-slip - PD-noise, relabel = F4a PD-relabel - BRIDGE-slip (F4 before
+    PLAN_CHANGES 2026-09-13),
     iso_pd = F3 PD-noise - PD-iso."""
     f1, f4, f3 = _disturbed(primary), _disturbed(relabel), _disturbed(iso_pd)
     f1_pos = [c.delta >= GATE_EFFECT and c.clear_positive() and c.q is not None and c.q < q for c in f1]

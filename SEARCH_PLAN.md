@@ -26,9 +26,10 @@ Prior results are priors, not constraints. Nothing here re-runs a prior experime
 - Machine A: RTX 3080 Ti 12 GB (driver 610.74), Windows 11, Python 3.11.9,
   torch 2.11.0+cu128, numpy 1.26.4, scipy 1.17.1, pandas 3.0.3, pyarrow 25.0.1.
   Machine B: none available at registration. Replication is same-machine (0.7).
-- Demos: regenerated on CPU with `make_demos(layout, n=500, seed=4242)`; sha256 of
-  `data/demos_L1.npz` and `data/demos_L2.npz` recorded here before the first new cell
-  runs (step 8 of the run order).
+- Demos: regenerated on CPU with `make_demos(layout, n=500, seed=4242)`, nominal
+  success 0.998 on both layouts. sha256 (recorded before the first new cell ran):
+  `data/demos_L1.npz` 2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5,
+  `data/demos_L2.npz` 3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f.
 
 ### 0.1 Hypotheses
 

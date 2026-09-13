@@ -1,18 +1,5 @@
-# Generator gate: findings
+### dr
 
-Status: template, nothing run yet. Commit: 06c0d24. Pre-registration:
-SEARCH_PLAN.md section 0 at the commit that introduced it.
-
-Every table below is written by `python -m sb.cli report gate` from `sb/stats.py`.
-Nothing between the table markers is edited by hand.
-
-## 1. Setup
-
-One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
-
-## 2. Dynamic-range check
-
-<!-- tables:dr -->
 | quantity | value |
 |---|---|
 | cells_at_floor | 0 |
@@ -27,11 +14,9 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | L2 | push | 5 | 0.152 | [-, -] |
 | L2 | rain | 5 | 0.193 | [-, -] |
 | L2 | slip | 5 | 0.444 | [-, -] |
-<!-- /tables:dr -->
 
-## 3. MPC-relabel diagnostic
+### diag
 
-<!-- tables:diag -->
 | quantity | value |
 |---|---|
 | cost | greedy |
@@ -45,11 +30,9 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | success_none | 0.000 |
 | pass | 0 |
 | seconds | 56.600 |
-<!-- /tables:diag -->
 
-## 4. Success by source, layout and disturbance
+### cells
 
-<!-- tables:cells -->
 | source | layout | disturbance | n | mean | 95% CI |
 |---|---|---|---|---|---|
 | DEMO | L1 | none | 5 | 0.894 | [0.772, 1.016] |
@@ -116,11 +99,9 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | MPC-relabel | L1 | slip | 5 | 0.198 | [0.122, 0.274] |
 | MPC-relabel | L1 | rain | 5 | 0.226 | [0.174, 0.278] |
 | MPC-relabel | L1 | push | 5 | 0.069 | [0.033, 0.105] |
-<!-- /tables:cells -->
 
-## 5. Primary contrast F1: BRIDGE-slip minus PD-noise
+### F1
 
-<!-- tables:F1 -->
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | F1 (BRIDGE-slip - PD-noise) | L1 | push | 5 | -0.317 | [-0.394, -0.240] | [-0.367, -0.270] | 0.000 | 0.002 | null |
@@ -129,13 +110,9 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | F1 (BRIDGE-slip - PD-noise) | L2 | push | 5 | -0.072 | [-0.122, -0.022] | [-0.102, -0.041] | 0.016 | 0.033 | null |
 | F1 (BRIDGE-slip - PD-noise) | L2 | rain | 5 | -0.039 | [-0.107, 0.029] | [-0.086, -0.004] | 0.185 | 0.222 | null |
 | F1 (BRIDGE-slip - PD-noise) | L2 | slip | 5 | -0.015 | [-0.151, 0.121] | [-0.097, 0.074] | 0.774 | 0.774 | inconclusive |
-<!-- /tables:F1 -->
 
-## 6. Isolations
+### F2
 
-### 6.1 Reference covariance (F2, F3)
-
-<!-- tables:F2 -->
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | push | 5 | 0.156 | [0.125, 0.187] | [0.137, 0.178] | 0.000 | 0.000 | pass |
@@ -144,9 +121,9 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-<!-- /tables:F2 -->
 
-<!-- tables:F3 -->
+### F3
+
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | F3 (PD-noise - PD-iso) | L1 | push | 5 | -0.023 | [-0.086, 0.040] | [-0.062, 0.016] | 0.367 | 0.367 | null |
@@ -155,19 +132,17 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | F3 (PD-noise - PD-iso) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F3 (PD-noise - PD-iso) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F3 (PD-noise - PD-iso) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-<!-- /tables:F3 -->
 
-### 6.2 Action labels (F4a, F4b; F4 reported, not in the rule)
+### F4a
 
-<!-- tables:F4a -->
 not run
-<!-- /tables:F4a -->
 
-<!-- tables:F4b -->
+### F4b
+
 not run
-<!-- /tables:F4b -->
 
-<!-- tables:F4 -->
+### F4
+
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | F4 (MPC-relabel - BRIDGE-slip) | L1 | push | 5 | -0.127 | [-0.159, -0.095] | [-0.144, -0.106] | 0.000 | 0.001 | null |
@@ -176,11 +151,28 @@ not run
 | F4 (MPC-relabel - BRIDGE-slip) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F4 (MPC-relabel - BRIDGE-slip) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
 | F4 (MPC-relabel - BRIDGE-slip) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-<!-- /tables:F4 -->
 
-### 6.3 State coverage
+### F5
 
-<!-- tables:cov -->
+not run
+
+### F6
+
+not run
+
+### F7
+
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F7 (MPPI-rollouts - PD-noise) | L1 | push | 5 | -0.020 | [-0.109, 0.069] | [-0.083, 0.032] | 0.568 | 0.568 | null |
+| F7 (MPPI-rollouts - PD-noise) | L1 | rain | 5 | 0.055 | [-0.046, 0.156] | [-0.013, 0.119] | 0.205 | 0.409 | inconclusive |
+| F7 (MPPI-rollouts - PD-noise) | L1 | slip | 5 | 0.068 | [-0.053, 0.189] | [-0.007, 0.143] | 0.194 | 0.409 | inconclusive |
+| F7 (MPPI-rollouts - PD-noise) | L2 | push | 5 | -0.023 | [-0.083, 0.037] | [-0.056, 0.017] | 0.349 | 0.451 | null |
+| F7 (MPPI-rollouts - PD-noise) | L2 | rain | 5 | 0.042 | [-0.075, 0.159] | [-0.027, 0.110] | 0.376 | 0.451 | inconclusive |
+| F7 (MPPI-rollouts - PD-noise) | L2 | slip | 5 | 0.107 | [-0.054, 0.268] | [0.010, 0.213] | 0.139 | 0.409 | inconclusive |
+
+### cov
+
 | source | layout | n | off-path cells | [off-path fraction, disturbed success] |
 |---|---|---|---|---|
 | BRIDGE-slip | L1 | 5 | 416.400 | [0.289, 0.295] |
@@ -198,44 +190,13 @@ not run
 | PD-noise | L2 | 5 | 35.400 | [0.004, 0.211] |
 
 Spearman(coverage, disturbed success) across sources within (seed, layout): mean -0.679, 95% CI [-0.810, -0.548], n = 10
-<!-- /tables:cov -->
 
-## 7. Upper bound and the other generators (F5, F6, F7)
+### cvar
 
-<!-- tables:F5 -->
-not run
-<!-- /tables:F5 -->
-
-<!-- tables:F6 -->
-not run
-<!-- /tables:F6 -->
-
-<!-- tables:F7 -->
-| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
-|---|---|---|---|---|---|---|---|---|---|
-| F7 (MPPI-rollouts - PD-noise) | L1 | push | 5 | -0.020 | [-0.109, 0.069] | [-0.083, 0.032] | 0.568 | 0.568 | null |
-| F7 (MPPI-rollouts - PD-noise) | L1 | rain | 5 | 0.055 | [-0.046, 0.156] | [-0.013, 0.119] | 0.205 | 0.409 | inconclusive |
-| F7 (MPPI-rollouts - PD-noise) | L1 | slip | 5 | 0.068 | [-0.053, 0.189] | [-0.007, 0.143] | 0.194 | 0.409 | inconclusive |
-| F7 (MPPI-rollouts - PD-noise) | L2 | push | 5 | -0.023 | [-0.083, 0.037] | [-0.056, 0.017] | 0.349 | 0.451 | null |
-| F7 (MPPI-rollouts - PD-noise) | L2 | rain | 5 | 0.042 | [-0.075, 0.159] | [-0.027, 0.110] | 0.376 | 0.451 | inconclusive |
-| F7 (MPPI-rollouts - PD-noise) | L2 | slip | 5 | 0.107 | [-0.054, 0.268] | [0.010, 0.213] | 0.139 | 0.409 | inconclusive |
-<!-- /tables:F7 -->
-
-## 8. Tail: CVaR_0.1 of progress
-
-<!-- tables:cvar -->
 no cells with per-episode records yet
-<!-- /tables:cvar -->
 
-## 9. Replication (seeds 5-9)
+### decision
 
-<!-- tables:rep -->
-not run
-<!-- /tables:rep -->
-
-## 10. Verdict
-
-<!-- tables:decision -->
 **Verdict: neither**
 
 | count | value |
@@ -248,14 +209,13 @@ not run
 | n_f4 | 0 |
 | n_f3 | 6 |
 | n_cells | 6 |
-<!-- /tables:decision -->
 
-What this means for the `data` slot of the grammar: (filled once the verdict is in;
-the three cases are spelled out in SEARCH_PLAN 0.6).
+### rep
 
-## 11. Minimum-effect statement
+not run
 
-<!-- tables:mineffect -->
+### mineffect
+
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | F1 (BRIDGE-slip - PD-noise) | L1 | push | 5 | -0.317 | [-0.394, -0.240] | [-0.367, -0.270] | 0.000 | 0.002 | null |
@@ -270,8 +230,3 @@ the three cases are spelled out in SEARCH_PLAN 0.6).
 | F7 (MPPI-rollouts - PD-noise) | L2 | push | 5 | -0.023 | [-0.083, 0.037] | [-0.056, 0.017] | 0.349 | 0.451 | null |
 | F7 (MPPI-rollouts - PD-noise) | L2 | rain | 5 | 0.042 | [-0.075, 0.159] | [-0.027, 0.110] | 0.376 | 0.451 | inconclusive |
 | F7 (MPPI-rollouts - PD-noise) | L2 | slip | 5 | 0.107 | [-0.054, 0.268] | [0.010, 0.213] | 0.139 | 0.409 | inconclusive |
-<!-- /tables:mineffect -->
-
-## 12. Deviations from the plan
-
-Links to PLAN_CHANGES.md entries and ERRORS.md entries raised during this section.

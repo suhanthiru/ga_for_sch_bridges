@@ -1,0 +1,13 @@
+{
+ "cost": "greedy",
+ "speed_ratio": 2.833143495877768,
+ "demo_speed": 0.25398144125938416,
+ "relabel_speed": 0.7195658683776855,
+ "consistency_vx": 0.19006940722465515,
+ "consistency_vy": 1.3464937210083008,
+ "consistency_w": 1.3762831687927246,
+ "collision": 1.0,
+ "success_none": 0.0,
+ "pass": false,
+ "seconds": 56.6
+}

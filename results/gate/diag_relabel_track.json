@@ -1,0 +1,13 @@
+{
+ "cost": "track",
+ "speed_ratio": 1.9124106759719288,
+ "demo_speed": 0.25398144125938416,
+ "relabel_speed": 0.4857168197631836,
+ "consistency_vx": 0.23826567828655243,
+ "consistency_vy": 1.0561660528182983,
+ "consistency_w": 1.2712719440460205,
+ "collision": 1.0,
+ "success_none": 0.0,
+ "pass": false,
+ "seconds": 101.9
+}
