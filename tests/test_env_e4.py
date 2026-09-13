@@ -14,7 +14,7 @@ def test_box_moves_only_when_pushed_inside_the_cone(cpu):
     r_old = torch.tensor([[0.3 - (R + RB) - 0.001, 0.5, 0.0]] * 4)
     # 0: straight push; 1: same push but not touching; 2: push at 60 deg (outside cone mu=0.5); 3: pulling away
     r_new = r_old.clone()
-    r_new[0, 0] += 0.009
+    r_new[0, 0] += 0.012
     r_new[1, 0] += 0.004; r_old[1, 0] -= 0.02; r_new[1, 0] -= 0.02
     r_new[2, 0] += 0.004; r_new[2, 1] += 0.004 * math.tan(math.radians(60))
     r_new[3, 0] -= 0.004
