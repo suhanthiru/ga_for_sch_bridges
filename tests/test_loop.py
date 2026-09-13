@@ -38,3 +38,12 @@ def test_run_writes_the_map_and_random_control_differs(tmp_path):
     r.run(budget=120, stop_after_flat=1000)
     df = r.archive.frame()
     assert (df.algorithm == "random").sum() >= 100 and set(df.columns) >= {"gid", "sid", "dsl", "novelty_level", "cell", "fitness"}
+
+
+def test_cma_batches_appear_and_improve_structures(tmp_path):
+    G = Grammar(load_all()); seeds = _seeds(G, 6)
+    s = Search(G, tmp_path / "c", seeds, dummy_evaluate, n_cells=20, log=lambda m: None)
+    s.run(budget=400, stop_after_flat=10_000)
+    df = s.archive.frame()
+    assert (df.algorithm == "cma_mae").sum() > 20 and s.emitters
+    assert set(df[df.algorithm == "cma_mae"].sid) <= set(df.sid)

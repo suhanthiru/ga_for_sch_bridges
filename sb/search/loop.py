@@ -15,6 +15,7 @@ import numpy as np
 from sb.core.genome import Genome, Provenance
 from sb.core.novelty import SeedSet, novelty
 from sb.envs.family import AXES
+from sb.search.algos.cma_emitter import CMAEmitter
 from sb.search.archive import Archive
 from sb.search.elites import EliteMap
 
@@ -39,19 +40,44 @@ class Search:
         self.seeds = list(seeds); self.seed_set = SeedSet.from_genomes(self.seeds)
         self.rng = np.random.default_rng(seed); self.algorithm = algorithm
         self.gen, self.n_evals, self.pending = 0, 0, list(range(len(self.seeds)))
+        self.emitters, self.queue, self.batch = {}, [], None      # CMA-MAE: per-structure emitters, queued samples, open batch
+        self.p_cma = 0.3 if algorithm == "mapelites" else 0.0
 
     # ---------------------------------------------------------------- cells
     def random_cell_desc(self):
         return [float(self.rng.integers(0, 4)) / 3 for _ in AXES]
 
     # ----------------------------------------------------------------- step
+    def _cma_batch(self):
+        """Ask one structure's emitter for a batch aimed at that elite's cell."""
+        cells = list(self.map.elite)
+        c = cells[int(self.rng.integers(len(cells)))]; e = self.map.elite[c]
+        parent = Genome.from_json(self.archive.genome_json(e["gid"]))
+        em = self.emitters.get(parent.sid)
+        if em is None:
+            em = CMAEmitter(parent, self.G, seed=int(self.rng.integers(1 << 30)))
+            if len(self.emitters) >= 64:
+                self.emitters.pop(next(iter(self.emitters)))
+            self.emitters[parent.sid] = em
+        if not em.active:
+            return False
+        genomes = em.ask(self.gen)
+        self.batch = dict(emitter=em, cell=c, elite_fitness=e["fitness"], fits=[], n=len(genomes))
+        self.queue = [(g, e["desc"]) for g in genomes]
+        return bool(genomes)
+
     def propose(self):
-        """Next genome and cell: seeds first, then mutations of random elites (or crossover)."""
+        """Next genome and cell: seeds first; then CMA batches on an elite's structure, or
+        mutations / crossovers of random elites."""
         if self.pending:
             g = self.seeds[self.pending.pop(0)]; desc = self.random_cell_desc()
             return g, desc
+        if self.queue:
+            return self.queue.pop(0)
         if not self.map.elite or self.algorithm == "random":
             return self.G.random_genome(self.rng, 0.6, Provenance(algorithm=self.algorithm, generation=self.gen)), self.random_cell_desc()
+        if self.rng.random() < self.p_cma and self._cma_batch():
+            return self.queue.pop(0)
         cells = list(self.map.elite)
         c = cells[int(self.rng.integers(len(cells)))]; parent = Genome.from_json(self.archive.genome_json(self.map.elite[c]["gid"]))
         if len(cells) > 1 and self.rng.random() < 0.2:
@@ -74,6 +100,10 @@ class Search:
         improved = False
         if r["valid"]:
             improved = self.map.insert(cell, g.gid, r["fitness"], row["eval_id"], self.gen, desc)
+        if self.batch is not None and g.provenance.op == "cma":
+            self.batch["fits"].append(r["fitness"] if r["valid"] else -np.inf)
+            if len(self.batch["fits"]) >= self.batch["n"]:
+                self.batch["emitter"].tell(self.batch["fits"], self.batch["elite_fitness"]); self.batch = None
         self.n_evals += 1; self.gen += 1
         if self.n_evals % CHECKPOINT_EVERY == 0:
             self.checkpoint()
