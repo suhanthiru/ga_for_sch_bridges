@@ -78,3 +78,15 @@ def test_rung0_cells_are_the_eight_corners():
     cells = rung0_cells()
     assert len(cells) == 8 and len({tuple(c["vector"]) for c in cells}) == 8
     assert sum(c["env"] == "E2" for c in cells) == 4
+
+
+def test_residual_controller_starts_as_its_base_and_trains(cpu, small_demos, tmp_path):
+    G = Grammar(load_all())
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.rl_residual", (("bound", 0.3), ("clip", 0.2), ("ent", 1e-3), ("lr", 3e-4))),
+             Node("c", "controller.pd", (("kp", 6.0),)))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge("b", "base", "c"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    assert G.validate(g) == [], G.validate(g)
+    r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
+    assert r.valid, r.invalid_reason + r.error
+    assert r.has_rl and r.per_disturbance["none"] > 0.5            # a zero residual on a PD that succeeds undisturbed

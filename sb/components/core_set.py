@@ -170,6 +170,21 @@ class CtlPPO:
         return dict(kind="ppo", lr=float(params["lr"]), clip=float(params["clip"]), ent=float(params["ent"]), data=ctx["sub"]["data"])
 
 
+@component("controller.rl_residual", ("controller",), params={"lr": P.loguniform(1e-4, 1e-3), "clip": P.uniform(0.1, 0.3), "ent": P.loguniform(1e-4, 1e-2),
+           "bound": P.choice([0.1, 0.3, 0.6])}, sub_slots={"base": SlotSpec("controller", optional=False)}, tag="rl", cost=dict(gpu=True),
+           test=T + "test_controllers")
+class CtlRLResidual:
+    """A bounded PPO residual on top of the base controller in the sub-slot; the residual
+    starts at zero (its warm start), so the stack begins as the base and can only be
+    trained away from it. The evaluator does the training."""
+    def build(self, params, ctx):
+        base = ctx["sub"]["base"]
+        if isinstance(base, dict):
+            raise ValueError("the base of a residual must be a trained controller, not another RL recipe")
+        return dict(kind="ppo_residual", lr=float(params["lr"]), clip=float(params["clip"]), ent=float(params["ent"]),
+                    bound=float(params["bound"]), base=base)
+
+
 # ---------------------------------------------------------------------- data
 def _src(name, extra=None):
     def build(self, params, ctx):

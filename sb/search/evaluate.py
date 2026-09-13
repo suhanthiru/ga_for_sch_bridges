@@ -89,19 +89,31 @@ class OracleGuard:
 
 
 def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None):
-    """PPO for one genome: BC warm start on the recipe's data, then `steps` environment
-    steps of PPO. Returns a controller (g, k, tau, step) -> (u, None)."""
-    G, U = recipe["data"]
-    env = PopEnv(tk, 1, n_envs)
-    ppo = PopPPO(1, device, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed)
+    """PPO for one genome. `ppo`: BC warm start on the recipe's data, then `steps` env
+    steps. `ppo_residual`: a bounded residual on the recipe's base controller, warm-started
+    at zero. Returns a controller (g, k, tau, step) -> (u, None)."""
+    residual = recipe["kind"] == "ppo_residual"
+    env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3))
+    ppo = PopPPO(1, device, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(device.type == "cuda"))
     gen = torch.Generator(device=device).manual_seed(seed)
-    ppo.warm_start_bc(tk, G, U, gen=gen)
+    if residual:
+        with torch.no_grad():                      # zero residual at the start: the last layer's weight and bias
+            last = [k for k in ppo.params if k.startswith("a.") and k.endswith(".weight")][-1]
+            ppo.params[last].zero_(); ppo.params[last.replace("weight", "bias")].zero_()
+    else:
+        G, U = recipe["data"]
+        ppo.warm_start_bc(tk, G, U, gen=gen)
     obs = env.reset()
     for _ in range(max(1, steps // (n_envs * rollout))):
         obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=1024, gen=gen)
+    base, bound = recipe.get("base"), recipe.get("bound", 0.3)
 
     def ctl(g, k, tau, step):
-        return ppo.act(obs_of(tk, g, k, tau), g.shape[0]), None
+        a = ppo.act(obs_of(tk, g, k, tau), g.shape[0])
+        if not residual:
+            return a, None
+        ub, _ = base(g, k, tau, step)
+        return TK.clip_u(ub) + bound * a, None                 # act() already applied tanh and the action scale
     return ctl
 
 
@@ -222,7 +234,7 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         demos = demos if demos is not None else load_demos(settings.demo_path(cell.layout), device)
         t0 = time.time()
         stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps())
-        if isinstance(stack.controller, dict) and stack.controller.get("kind") == "ppo":
+        if isinstance(stack.controller, dict) and stack.controller.get("kind") in ("ppo", "ppo_residual"):
             stack.controller = train_rl(stack.controller, tk, seed, rl_steps if rl_steps is not None else cfg["rl_steps"], device,
                                         n_envs=min(512, max(8, episodes * 4)))
         res.train_s = time.time() - t0
