@@ -48,7 +48,7 @@ class E1Terrain(Env):
         ho = self.t >= self.T
         k = torch.where(ho, self.k + 1, self.k); t = torch.where(ho, torch.zeros_like(self.t), self.t)
         fin = ho & (k >= 3)
-        success = fin & (S.mahalanobis(self.g, self.tk.means[3], self.tk.covs[3]) <= 2.0)
+        success = fin & (self.tk.marginal_md(self.g, 3) <= 2.0)
         r = r + success.float()
         done = hit | fin
         fresh = self.tk.sample(0, self.n)

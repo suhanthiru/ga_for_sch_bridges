@@ -72,6 +72,11 @@ class Task:
     def sample(self, k, n):
         return S.sample_marginal(self.means[k], self.covs[k], n, self.device, self.gen)
 
+    def marginal_md(self, g, k):
+        """Mahalanobis distance of g to marginal k; multimodal tasks override this with the
+        distance to the nearest mode."""
+        return S.mahalanobis(g, self.means[k], self.covs[k])
+
     def dynamics(self, g, u, step):
         """One physics step.  Returns new pose and a collision flag."""
         n = g.shape[0]
@@ -125,8 +130,8 @@ class Task:
                 if extra is not None:
                     dlog.append(extra)
             handoff.append(g.clone())
-            reached.append(alive & (S.mahalanobis(g, self.means[k + 1], self.covs[k + 1]) <= 2.0))
-        goal_md = S.mahalanobis(g, self.means[3], self.covs[3])
+            reached.append(alive & (self.marginal_md(g, k + 1) <= 2.0))
+        goal_md = self.marginal_md(g, 3)
         succ = alive & (goal_md <= 2.0)
         # progress in {0, 1/3, 2/3, 1}: how many handoffs were reached alive and inside the
         # target set; a graded per-episode outcome for tail statistics (binary success has
