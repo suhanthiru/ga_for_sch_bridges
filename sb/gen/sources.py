@@ -23,6 +23,7 @@ import torch
 from sb.core import se2 as S
 from sb.envs.gen_task import GenTask, make_ref
 from sb.gen import controllers as C
+# the gate trained its nets sequentially (registered 0.2); its path stays sequential
 from sb.gen.bridges import BRIDGE_CFG, get_bridges
 from sb.gen.coverage import coverage, noised_copies
 from sb.gen.noise import NoiseStream, iso_variance
@@ -75,20 +76,20 @@ def build(source, tk, layout, seed, device, demos, models_dir, n_demo=20, mult=4
     def bridge_states():
         key = ("bridge_states", layout, seed, tag)
         if key not in cache:
-            nets = get_bridges("slip", tk, layout, seed, device, models_dir, tag, mf, cfg)
+            nets = get_bridges("slip", tk, layout, seed, device, models_dir, tag, mf, cfg, workers=1)
             cache[key] = rollout(tk, mf, C.bridge_act(nets, mf, tk), m, z, ref, starts=starts)[0]
         return cache[key]
 
     if source.startswith("BRIDGE-on-PD"):
         Gp, _ = rollout(tk, mf, C.pd_act(Gd, Ud), m, z, ref, starts=starts)
-        nets = get_bridges("slip", tk, layout, seed, device, models_dir, tag, mf, cfg)
+        nets = get_bridges("slip", tk, layout, seed, device, models_dir, tag, mf, cfg, workers=1)
         Gg, Ug = rollout(tk, mf, C.bridge_act(nets, mf, tk), m, z, ref, states=Gp)
     elif source.startswith("BRIDGE"):
         kind = source.split("-")[1]
         r = make_ref(kind, tk)
         if hasattr(tk, "body_std"):
             r.body_cov = tk.body_std ** 2
-        nets = get_bridges(kind, tk, layout, seed, device, models_dir, tag, mf, cfg)
+        nets = get_bridges(kind, tk, layout, seed, device, models_dir, tag, mf, cfg, workers=1)
         Gg, Ug = rollout(tk, mf, C.bridge_act(nets, mf, tk), m, z, r, starts=starts)
     elif source == "PD-noise":
         Gg, Ug = rollout(tk, mf, C.pd_act(Gd, Ud), m, z, ref, starts=starts)

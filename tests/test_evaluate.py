@@ -165,8 +165,25 @@ def test_search_bridge_cache_trains_the_backward_drift_and_exposes_d(cpu, tmp_pa
     from sb.gen.bridges import SEARCH_BRIDGE_CFG, get_bridges
     tk = GenTask(TR.Layout("L1"), "none", 8, 1, cpu)
     tiny = dict(SEARCH_BRIDGE_CFG, n_pair=32, steps0=2, steps_ipf=1, batch=16, n_sim=2)
-    nets = get_bridges("slip", tk, "L1", 0, cpu, tmp_path, mf=S.SE2, cfg=tiny, width=2.0)
+    nets = get_bridges("slip", tk, "L1", 0, cpu, tmp_path, mf=S.SE2, cfg=tiny, width=2.0, workers=1)
     assert (0, "bwd") in nets[0] and any("_w2" in p.name for p in tmp_path.iterdir())
+    assert any(p.suffix == ".json" and "threads" in p.read_text() for p in tmp_path.iterdir())
     ctl = SV.BridgeController(nets, S.SE2, tk, 0, cpu, with_D=True)
     u, extra = ctl(tk.sample(0, 4), 0, torch.full((4,), 0.3), 0)
     assert u.shape == (4, 3) and extra.shape == (4, 2) and torch.isfinite(extra).all()
+
+
+def test_pooled_bridge_training_is_reproducible_and_records_its_provenance(cpu, tmp_path):
+    import json
+    from sb.core import se2 as S
+    from sb.envs import terrain as TR
+    from sb.envs.gen_task import GenTask
+    from sb.gen.bridges import SEARCH_BRIDGE_CFG, get_bridges
+    tk = GenTask(TR.Layout("L1"), "push", 8, 1, cpu)
+    tiny = dict(SEARCH_BRIDGE_CFG, n_pair=32, steps0=3, steps_ipf=1, batch=16, n_sim=2)
+    a = get_bridges("unicycle", tk, "L1", 3, cpu, tmp_path / "a", mf=S.Flat, cfg=tiny, workers=3)
+    b = get_bridges("unicycle", tk, "L1", 3, cpu, tmp_path / "b", mf=S.Flat, cfg=tiny, workers=3)
+    assert set(a) == {0, 1, 2} and all((0, "bwd") in a[k] for k in a)
+    assert all(torch.equal(a[k][key][pn], b[k][key][pn]) for k in a for key in a[k] for pn in a[k][key])
+    prov = json.loads(next(p for p in (tmp_path / "a").iterdir() if p.suffix == ".json").read_text())
+    assert prov["workers"] == 3 and prov["threads"] == 5 and prov["manifold"] == "flat"
