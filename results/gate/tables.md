@@ -274,7 +274,62 @@ Spearman(coverage, disturbed success) across sources within (seed, layout): mean
 
 ### cvar
 
-no cells with per-episode records yet
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F1-cvar (BRIDGE-slip - PD-noise) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F1-cvar (BRIDGE-slip - PD-noise) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F1-cvar (BRIDGE-slip - PD-noise) | L1 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F1-cvar (BRIDGE-slip - PD-noise) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F1-cvar (BRIDGE-slip - PD-noise) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F1-cvar (BRIDGE-slip - PD-noise) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L1 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F2-cvar (BRIDGE-slip - BRIDGE-unicycle) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F3-cvar (PD-noise - PD-iso) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F3-cvar (PD-noise - PD-iso) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F3-cvar (PD-noise - PD-iso) | L1 | slip | 5 | -0.077 | [-0.138, -0.015] | [-0.113, -0.033] | 0.026 | 0.154 | null |
+| F3-cvar (PD-noise - PD-iso) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F3-cvar (PD-noise - PD-iso) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F3-cvar (PD-noise - PD-iso) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L1 | push | 5 | 0.037 | [-0.015, 0.088] | [0.007, 0.070] | 0.119 | 0.358 | null |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L1 | rain | 5 | 0.003 | [-0.006, 0.013] | [0.000, 0.010] | 0.374 | 0.748 | null |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L1 | slip | 5 | 0.160 | [0.092, 0.228] | [0.113, 0.193] | 0.003 | 0.017 | pass |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4a-cvar (PD-relabel - BRIDGE-slip) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L1 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4b-cvar (BRIDGE-on-PD - PD-noise) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L1 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F4-cvar (MPC-relabel - BRIDGE-slip) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L1 | slip | 5 | 0.150 | [0.025, 0.275] | [0.070, 0.223] | 0.029 | 0.174 | inconclusive |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F5-cvar (MPC-oracle - BRIDGE-slip) | L2 | slip | 5 | 0.003 | [-0.006, 0.013] | [0.000, 0.010] | 0.374 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L1 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L1 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F6-cvar (GC-diff-rollouts - PD-noise) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F7-cvar (MPPI-rollouts - PD-noise) | L1 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F7-cvar (MPPI-rollouts - PD-noise) | L1 | rain | 5 | 0.007 | [-0.012, 0.025] | [0.000, 0.020] | 0.374 | 1.000 | null |
+| F7-cvar (MPPI-rollouts - PD-noise) | L1 | slip | 5 | 0.127 | [0.029, 0.224] | [0.057, 0.180] | 0.023 | 0.137 | inconclusive |
+| F7-cvar (MPPI-rollouts - PD-noise) | L2 | push | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F7-cvar (MPPI-rollouts - PD-noise) | L2 | rain | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
+| F7-cvar (MPPI-rollouts - PD-noise) | L2 | slip | 5 | 0.000 | [0.000, 0.000] | [0.000, 0.000] | 1.000 | 1.000 | null |
 
 ### decision
 
@@ -293,7 +348,136 @@ no cells with per-episode records yet
 
 ### rep
 
-not run
+| source | layout | disturbance | n | mean | 95% CI |
+|---|---|---|---|---|---|
+| BRIDGE-on-PD | L1 | none | 5 | 0.812 | [0.632, 0.992] |
+| BRIDGE-on-PD | L1 | slip | 5 | 0.287 | [0.245, 0.329] |
+| BRIDGE-on-PD | L1 | rain | 5 | 0.119 | [0.094, 0.144] |
+| BRIDGE-on-PD | L1 | push | 5 | 0.057 | [0.037, 0.077] |
+| BRIDGE-on-PD | L2 | none | 5 | 0.689 | [0.423, 0.955] |
+| BRIDGE-on-PD | L2 | slip | 5 | 0.238 | [0.177, 0.299] |
+| BRIDGE-on-PD | L2 | rain | 5 | 0.108 | [0.066, 0.150] |
+| BRIDGE-on-PD | L2 | push | 5 | 0.024 | [0.004, 0.044] |
+| BRIDGE-slip | L1 | none | 5 | 0.983 | [0.949, 1.017] |
+| BRIDGE-slip | L1 | slip | 5 | 0.399 | [0.360, 0.438] |
+| BRIDGE-slip | L1 | rain | 5 | 0.153 | [0.124, 0.182] |
+| BRIDGE-slip | L1 | push | 5 | 0.126 | [0.113, 0.139] |
+| BRIDGE-slip | L2 | none | 5 | 0.826 | [0.687, 0.965] |
+| BRIDGE-slip | L2 | slip | 5 | 0.229 | [0.162, 0.296] |
+| BRIDGE-slip | L2 | rain | 5 | 0.086 | [0.068, 0.104] |
+| BRIDGE-slip | L2 | push | 5 | 0.037 | [0.020, 0.054] |
+| BRIDGE-unicycle | L1 | none | 5 | 0.903 | [0.821, 0.985] |
+| BRIDGE-unicycle | L1 | slip | 5 | 0.166 | [0.090, 0.242] |
+| BRIDGE-unicycle | L1 | rain | 5 | 0.066 | [0.041, 0.091] |
+| BRIDGE-unicycle | L1 | push | 5 | 0.036 | [0.016, 0.056] |
+| BRIDGE-unicycle | L2 | none | 5 | 0.683 | [0.559, 0.807] |
+| BRIDGE-unicycle | L2 | slip | 5 | 0.144 | [0.062, 0.226] |
+| BRIDGE-unicycle | L2 | rain | 5 | 0.067 | [0.022, 0.112] |
+| BRIDGE-unicycle | L2 | push | 5 | 0.020 | [0.004, 0.036] |
+| DART | L1 | none | 5 | 0.993 | [0.985, 1.001] |
+| DART | L1 | slip | 5 | 0.721 | [0.701, 0.741] |
+| DART | L1 | rain | 5 | 0.335 | [0.296, 0.374] |
+| DART | L1 | push | 5 | 0.503 | [0.413, 0.593] |
+| DART | L2 | none | 5 | 0.739 | [0.494, 0.984] |
+| DART | L2 | slip | 5 | 0.380 | [0.269, 0.491] |
+| DART | L2 | rain | 5 | 0.162 | [0.125, 0.199] |
+| DART | L2 | push | 5 | 0.099 | [0.044, 0.154] |
+| DEMO | L1 | none | 5 | 0.911 | [0.789, 1.033] |
+| DEMO | L1 | slip | 5 | 0.221 | [0.159, 0.283] |
+| DEMO | L1 | rain | 5 | 0.130 | [0.084, 0.176] |
+| DEMO | L1 | push | 5 | 0.124 | [0.079, 0.169] |
+| DEMO | L2 | none | 5 | 0.114 | [0.077, 0.151] |
+| DEMO | L2 | slip | 5 | 0.038 | [0.031, 0.045] |
+| DEMO | L2 | rain | 5 | 0.019 | [0.007, 0.031] |
+| DEMO | L2 | push | 5 | 0.018 | [0.011, 0.025] |
+| GC-diff-rollouts | L1 | none | 5 | 0.994 | [0.989, 0.999] |
+| GC-diff-rollouts | L1 | slip | 5 | 0.482 | [0.421, 0.543] |
+| GC-diff-rollouts | L1 | rain | 5 | 0.237 | [0.171, 0.303] |
+| GC-diff-rollouts | L1 | push | 5 | 0.395 | [0.364, 0.426] |
+| GC-diff-rollouts | L2 | none | 5 | 0.190 | [0.099, 0.281] |
+| GC-diff-rollouts | L2 | slip | 5 | 0.078 | [0.044, 0.112] |
+| GC-diff-rollouts | L2 | rain | 5 | 0.036 | [0.023, 0.049] |
+| GC-diff-rollouts | L2 | push | 5 | 0.055 | [0.039, 0.071] |
+| MPC-oracle | L1 | none | 5 | 0.994 | [0.986, 1.002] |
+| MPC-oracle | L1 | slip | 5 | 0.739 | [0.658, 0.820] |
+| MPC-oracle | L1 | rain | 5 | 0.393 | [0.317, 0.469] |
+| MPC-oracle | L1 | push | 5 | 0.481 | [0.416, 0.546] |
+| MPC-oracle | L2 | none | 5 | 0.724 | [0.400, 1.048] |
+| MPC-oracle | L2 | slip | 5 | 0.444 | [0.336, 0.552] |
+| MPC-oracle | L2 | rain | 5 | 0.212 | [0.180, 0.244] |
+| MPC-oracle | L2 | push | 5 | 0.137 | [0.063, 0.211] |
+| MPC-relabel | L1 | none | 5 | 0.146 | [-0.154, 0.446] |
+| MPC-relabel | L1 | slip | 5 | 0.310 | [0.140, 0.480] |
+| MPC-relabel | L1 | rain | 5 | 0.273 | [0.164, 0.382] |
+| MPC-relabel | L1 | push | 5 | 0.116 | [0.032, 0.200] |
+| MPC-relabel | L2 | none | 5 | 0.012 | [-0.018, 0.042] |
+| MPC-relabel | L2 | slip | 5 | 0.139 | [0.048, 0.230] |
+| MPC-relabel | L2 | rain | 5 | 0.095 | [0.073, 0.117] |
+| MPC-relabel | L2 | push | 5 | 0.038 | [-0.001, 0.077] |
+| MPPI-rollouts | L1 | none | 5 | 0.989 | [0.981, 0.997] |
+| MPPI-rollouts | L1 | slip | 5 | 0.665 | [0.573, 0.757] |
+| MPPI-rollouts | L1 | rain | 5 | 0.370 | [0.304, 0.436] |
+| MPPI-rollouts | L1 | push | 5 | 0.484 | [0.412, 0.556] |
+| MPPI-rollouts | L2 | none | 5 | 0.861 | [0.709, 1.013] |
+| MPPI-rollouts | L2 | slip | 5 | 0.431 | [0.365, 0.497] |
+| MPPI-rollouts | L2 | rain | 5 | 0.207 | [0.179, 0.235] |
+| MPPI-rollouts | L2 | push | 5 | 0.104 | [0.078, 0.130] |
+| NOISED | L1 | none | 5 | 0.669 | [0.477, 0.861] |
+| NOISED | L1 | slip | 5 | 0.111 | [0.080, 0.142] |
+| NOISED | L1 | rain | 5 | 0.052 | [0.026, 0.078] |
+| NOISED | L1 | push | 5 | 0.041 | [0.023, 0.059] |
+| NOISED | L2 | none | 5 | 0.355 | [0.202, 0.508] |
+| NOISED | L2 | slip | 5 | 0.056 | [0.014, 0.098] |
+| NOISED | L2 | rain | 5 | 0.033 | [0.017, 0.049] |
+| NOISED | L2 | push | 5 | 0.010 | [0.002, 0.018] |
+| PD-iso | L1 | none | 5 | 0.994 | [0.991, 0.997] |
+| PD-iso | L1 | slip | 5 | 0.721 | [0.689, 0.753] |
+| PD-iso | L1 | rain | 5 | 0.365 | [0.343, 0.387] |
+| PD-iso | L1 | push | 5 | 0.556 | [0.523, 0.589] |
+| PD-iso | L2 | none | 5 | 0.767 | [0.656, 0.878] |
+| PD-iso | L2 | slip | 5 | 0.333 | [0.239, 0.427] |
+| PD-iso | L2 | rain | 5 | 0.164 | [0.139, 0.189] |
+| PD-iso | L2 | push | 5 | 0.160 | [0.092, 0.228] |
+| PD-noise | L1 | none | 5 | 0.984 | [0.966, 1.002] |
+| PD-noise | L1 | slip | 5 | 0.577 | [0.498, 0.656] |
+| PD-noise | L1 | rain | 5 | 0.272 | [0.216, 0.328] |
+| PD-noise | L1 | push | 5 | 0.486 | [0.431, 0.541] |
+| PD-noise | L2 | none | 5 | 0.568 | [0.426, 0.710] |
+| PD-noise | L2 | slip | 5 | 0.269 | [0.217, 0.321] |
+| PD-noise | L2 | rain | 5 | 0.125 | [0.068, 0.182] |
+| PD-noise | L2 | push | 5 | 0.125 | [0.090, 0.160] |
+| PD-relabel | L1 | none | 5 | 0.994 | [0.986, 1.002] |
+| PD-relabel | L1 | slip | 5 | 0.795 | [0.731, 0.859] |
+| PD-relabel | L1 | rain | 5 | 0.425 | [0.350, 0.500] |
+| PD-relabel | L1 | push | 5 | 0.654 | [0.609, 0.699] |
+| PD-relabel | L2 | none | 5 | 0.882 | [0.803, 0.961] |
+| PD-relabel | L2 | slip | 5 | 0.372 | [0.298, 0.446] |
+| PD-relabel | L2 | rain | 5 | 0.197 | [0.163, 0.231] |
+| PD-relabel | L2 | push | 5 | 0.170 | [0.135, 0.205] |
+
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F1 (BRIDGE-slip - PD-noise) | L1 | push | 5 | -0.360 | [-0.419, -0.301] | [-0.399, -0.327] | 0.000 | 0.000 | null |
+| F1 (BRIDGE-slip - PD-noise) | L1 | rain | 5 | -0.119 | [-0.177, -0.061] | [-0.148, -0.078] | 0.005 | 0.009 | null |
+| F1 (BRIDGE-slip - PD-noise) | L1 | slip | 5 | -0.178 | [-0.291, -0.065] | [-0.250, -0.115] | 0.012 | 0.018 | null |
+| F1 (BRIDGE-slip - PD-noise) | L2 | push | 5 | -0.088 | [-0.129, -0.047] | [-0.114, -0.062] | 0.004 | 0.009 | null |
+| F1 (BRIDGE-slip - PD-noise) | L2 | rain | 5 | -0.039 | [-0.097, 0.019] | [-0.075, -0.004] | 0.136 | 0.163 | null |
+| F1 (BRIDGE-slip - PD-noise) | L2 | slip | 5 | -0.040 | [-0.107, 0.027] | [-0.080, 0.000] | 0.171 | 0.171 | null |
+
+**Verdict: neither**
+
+| count | value |
+|---|---|
+| f1_positive | 0 |
+| f4_large | 6 |
+| f1_null | 2 |
+| f3_positive | 0 |
+| n_f1 | 6 |
+| n_f4 | 6 |
+| n_f3 | 6 |
+| n_cells | 6 |
+
+Agreement with seeds 0-4: yes
 
 ### mineffect
 

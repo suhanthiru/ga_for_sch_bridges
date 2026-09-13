@@ -1,0 +1,31 @@
+[gate s5 L1 DEMO] none:0.96 slip:0.26 rain:0.17 push:0.13 cov - (47s)
+[gate s5 L1 NOISED] none:0.83 slip:0.15 rain:0.09 push:0.05 cov 287 (44s)
+[gate s5 L1 BRIDGE-slip] none:1.00 slip:0.41 rain:0.19 push:0.12 cov 465 (88s)
+[gate s5 L1 BRIDGE-unicycle] none:0.95 slip:0.22 rain:0.07 push:0.06 cov 370 (77s)
+[gate s5 L1 PD-noise] none:0.96 slip:0.50 rain:0.31 push:0.44 cov 41 (46s)
+[gate s5 L1 PD-iso] none:1.00 slip:0.72 rain:0.39 push:0.58 cov 8 (47s)
+[gate s5 L1 DART] none:1.00 slip:0.71 rain:0.35 push:0.38 cov 19 (46s)
+[gate s5 L1 MPPI-rollouts] none:1.00 slip:0.68 rain:0.44 push:0.51 cov 176 (73s)
+[gate s5 L1 GC-diff-rollouts] none:1.00 slip:0.48 rain:0.27 push:0.38 cov 163 (96s)
+[gate s5 L1 MPC-relabel] none:0.00 slip:0.14 rain:0.18 push:0.05 cov 465 (70s)
+[gate s5 L1 MPC-oracle] none:1.00 slip:0.75 rain:0.49 push:0.55 cov 226 (80s)
+[gate s5 L1 PD-relabel] none:1.00 slip:0.81 rain:0.41 push:0.69 cov 465 (45s)
+[gate s5 L1 BRIDGE-on-PD] none:0.78 slip:0.33 rain:0.11 push:0.04 cov 41 (47s)
+[gate s5 L2 DEMO] none:0.14 slip:0.04 rain:0.02 push:0.02 cov - (44s)
+[gate s5 L2 NOISED] none:0.53 slip:0.11 rain:0.05 push:0.00 cov 277 (44s)
+[gate s5 L2 BRIDGE-slip] none:0.87 slip:0.28 rain:0.11 push:0.04 cov 452 (116s)
+[gate s5 L2 BRIDGE-unicycle] none:0.71 slip:0.19 rain:0.11 push:0.02 cov 392 (80s)
+[gate s5 L2 PD-noise] none:0.55 slip:0.25 rain:0.14 push:0.09 cov 30 (46s)
+[gate s5 L2 PD-iso] none:0.75 slip:0.41 rain:0.16 push:0.12 cov 6 (47s)
+[gate s5 L2 DART] none:0.50 slip:0.34 rain:0.16 push:0.07 cov 20 (46s)
+[gate s5 L2 MPPI-rollouts] none:0.81 slip:0.37 rain:0.23 push:0.12 cov 168 (73s)
+[gate s5 L2 GC-diff-rollouts] none:0.13 slip:0.11 rain:0.04 push:0.04 cov 571 (98s)
+[gate s5 L2 MPC-relabel] none:0.00 slip:0.06 rain:0.09 push:0.01 cov 452 (70s)
+[gate s5 L2 MPC-oracle] none:0.81 slip:0.38 rain:0.24 push:0.17 cov 223 (82s)
+[gate s5 L2 PD-relabel] none:0.88 slip:0.36 rain:0.20 push:0.16 cov 452 (45s)
+[gate s5 L2 BRIDGE-on-PD] none:0.47 slip:0.31 rain:0.12 push:0.01 cov 30 (46s)
+seed 5: 26 cells in 1644s
+working tree is dirty; commit first or pass --allow-dirty
+working tree is dirty; commit first or pass --allow-dirty
+working tree is dirty; commit first or pass --allow-dirty
+working tree is dirty; commit first or pass --allow-dirty
