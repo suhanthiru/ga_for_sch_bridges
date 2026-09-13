@@ -13,6 +13,28 @@ from sb.envs.e1_terrain import DEFAULTS, E1Terrain
 
 PATCH = 5
 PATCH_R = 0.06
+OBS_PARTIAL_DIM = 4 + 3 + 1 + 4 * PATCH * PATCH
+_OFFSETS = {}
+
+
+def _offsets(device, patch=PATCH, radius=PATCH_R):
+    key = (str(device), patch, radius)
+    if key not in _OFFSETS:
+        o = torch.linspace(-radius, radius, patch, device=device)
+        _OFFSETS[key] = torch.stack(torch.meshgrid(o, o, indexing="ij"), -1).reshape(-1, 2)
+    return _OFFSETS[key]
+
+
+def obs_partial(tk, g, k, tau, patch=PATCH, radius=PATCH_R):
+    """pose, one-hot skill, tau, and a patch x patch sample of slip stds and friction from the
+    true fields around the robot: what a policy sees when the map is hidden. (n, 108)."""
+    if not torch.is_tensor(k):
+        k = torch.full((g.shape[0],), int(k), dtype=torch.long, device=g.device)
+    n = g.shape[0]
+    k1h = torch.nn.functional.one_hot(k.clamp(max=2), 3).float()
+    pts = (g[:, None, :2] + _offsets(g.device, patch, radius)[None]).reshape(-1, 2)
+    pr = TR.lookup(tk.true_fields, pts)[:, :4].reshape(n, -1)       # the local sensor reads the terrain as it is
+    return torch.cat([g[:, :2], g[:, 2:3].cos(), g[:, 2:3].sin(), k1h, tau.unsqueeze(1), pr], 1)
 
 
 class E2Partial(E1Terrain):
@@ -29,12 +51,7 @@ class E2Partial(E1Terrain):
         return 4 + 3 + 1 + 4 * self.patch * self.patch
 
     def obs(self):
-        g, n = self.g, self.g.shape[0]
-        k1h = torch.nn.functional.one_hot(self.k.clamp(max=2), 3).float()
-        pts = (g[:, None, :2] + self.offsets[None]).reshape(-1, 2)
-        fields = self.tk.fields_at(int(self.k[0]) * self.T + int(self.t.float().median()))
-        p = TR.lookup(fields, pts)[:, :4].reshape(n, -1)                                 # 3 slip stds + friction
-        return torch.cat([g[:, :2], g[:, 2:3].cos(), g[:, 2:3].sin(), k1h, (self.t.float() / self.T).unsqueeze(1), p], 1)
+        return obs_partial(self.tk, self.g, self.k, self.t.float() / self.T, self.patch, self.radius)
 
 
 class E7Shifted(E1Terrain):

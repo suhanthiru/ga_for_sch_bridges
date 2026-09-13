@@ -156,8 +156,10 @@ class CtlDiffusion:
         from sb.policies.diffusion import train_diffusion
         from sb.policies.evaluate import ChunkCtl
         G, U = ctx["sub"]["data"]
-        pol = train_diffusion(ctx["task"], G, U, ctx.get("seed", 0), ctx["task"].device, int(params["steps"]))
-        return ChunkCtl(pol, ctx["task"])
+        from sb.policies.common import OBS_DIM, obs_of
+        obs_fn, obs_dim = ctx.get("obs_fn", obs_of), ctx.get("obs_dim", OBS_DIM)
+        pol = train_diffusion(ctx["task"], G, U, ctx.get("seed", 0), ctx["task"].device, int(params["steps"]), obs_fn=obs_fn, obs_dim=obs_dim)
+        return ChunkCtl(pol, ctx["task"], obs_fn)
 
 
 @component("controller.ppo", ("controller",), params={"lr": P.loguniform(1e-4, 1e-3), "clip": P.uniform(0.1, 0.3), "ent": P.loguniform(1e-4, 1e-2)},

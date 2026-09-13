@@ -14,5 +14,5 @@ def rung0_cells():
     for i, (sl, pm, ob) in enumerate(product(*CORNERS.values())):
         env = "E2" if ob == "partial" else "E1"
         desc = dict(env=env, slip_scale=sl, push_mult=pm, observability=ob)
-        cells.append(dict(cell=Cell(i, "L1", descriptor=dict(slip_scale=sl, push_mult=pm)), env=env, vector=descriptor_vector(desc), values=desc))
+        cells.append(dict(cell=Cell(i, "L1", descriptor=dict(slip_scale=sl, push_mult=pm), env=env), env=env, vector=descriptor_vector(desc), values=desc))
     return cells

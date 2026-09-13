@@ -38,8 +38,9 @@ class PopEnv:
     bounded residual added to the base command: u = base + bound * tanh(a). The same
     base serves every genome in the population; residuals start at zero."""
 
-    def __init__(self, tk, P, n, kinds=None, base=None, bound=0.3):
+    def __init__(self, tk, P, n, kinds=None, base=None, bound=0.3, obs_fn=obs_of):
         self.tk, self.P, self.n, self.N, self.device = tk, P, n, P * n, tk.device
+        self.obs_fn = obs_fn
         self.fe = FastEnv.from_task(tk, kinds=kinds if kinds is not None else torch.full((P * n,), FastEnv.from_task(tk).kind[0].item()))
         self.T = TK.T_SKILL
         self.base, self.bound = base, bound
@@ -50,7 +51,7 @@ class PopEnv:
         return self.obs()
 
     def obs(self):
-        return obs_of(self.tk, self.g, self.k, self.t.float() / self.T)
+        return self.obs_fn(self.tk, self.g, self.k, self.t.float() / self.T)
 
     def command(self, a):
         if self.base is None:

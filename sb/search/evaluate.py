@@ -20,7 +20,8 @@ from sb.envs import task as TK
 from sb.envs import terrain as TR
 from sb.envs.base import Caps
 from sb.envs.gen_task import GenTask
-from sb.policies.common import obs_of
+from sb.envs.e2_partial import OBS_PARTIAL_DIM, obs_partial
+from sb.policies.common import OBS_DIM, obs_of
 from sb.policies.demos import load_demos
 from sb.rl.pop_ppo import PopEnv, PopPPO
 from sb.search.invariants import check_episode_set, tripped
@@ -37,6 +38,10 @@ class Cell:
     layout: str = "L1"
     disturbances: tuple = DISTS
     descriptor: dict = field(default_factory=dict)
+    env: str = "E1"                                  # E1: full map through obs_of; E2: local patch, map hidden
+
+    def obs(self):
+        return (obs_partial, OBS_PARTIAL_DIM) if self.env == "E2" else (obs_of, OBS_DIM)
 
 
 @dataclass
@@ -88,13 +93,13 @@ class OracleGuard:
             cls.count += 1
 
 
-def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None):
+def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda m: None, obs_fn=obs_of, obs_dim=OBS_DIM):
     """PPO for one genome. `ppo`: BC warm start on the recipe's data, then `steps` env
     steps. `ppo_residual`: a bounded residual on the recipe's base controller, warm-started
     at zero. Returns a controller (g, k, tau, step) -> (u, None)."""
     residual = recipe["kind"] == "ppo_residual"
-    env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3))
-    ppo = PopPPO(1, device, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(device.type == "cuda"))
+    env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3), obs_fn=obs_fn)
+    ppo = PopPPO(1, device, obs_dim=obs_dim, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(device.type == "cuda"))
     gen = torch.Generator(device=device).manual_seed(seed)
     if residual:
         with torch.no_grad():                      # zero residual at the start: the last layer's weight and bias
@@ -102,14 +107,14 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
             ppo.params[last].zero_(); ppo.params[last.replace("weight", "bias")].zero_()
     else:
         G, U = recipe["data"]
-        ppo.warm_start_bc(tk, G, U, gen=gen)
+        ppo.warm_start_bc(tk, G, U, gen=gen, obs_fn=obs_fn)
     obs = env.reset()
     for _ in range(max(1, steps // (n_envs * rollout))):
         obs, info = ppo.update(env, obs, rollout=rollout, epochs=4, minibatch=1024, gen=gen)
     base, bound = recipe.get("base"), recipe.get("bound", 0.3)
 
     def ctl(g, k, tau, step):
-        a = ppo.act(obs_of(tk, g, k, tau), g.shape[0])
+        a = ppo.act(obs_fn(tk, g, k, tau), g.shape[0])
         if not residual:
             return a, None
         ub, _ = base(g, k, tau, step)
@@ -120,8 +125,9 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
 class Stack:
     """Compiled genome: build every node's object bottom-up, wire the controller."""
 
-    def __init__(self, genome, grammar, task, demos, models, seed, caps):
+    def __init__(self, genome, grammar, task, demos, models, seed, caps, obs_fn=obs_of, obs_dim=OBS_DIM):
         self.g, self.grammar, self.task, self.demos, self.models, self.seed, self.caps = genome, grammar, task, demos, models, seed, caps
+        self.obs_fn, self.obs_dim = obs_fn, obs_dim
         self.built = {}
         self.manifold = self._build_slot(ROOT, "manifold")
         self.controller = self._build_slot(ROOT, "controller")
@@ -131,7 +137,8 @@ class Stack:
         self.value = self._build_slot(ROOT, "value")
 
     def _ctx(self, sub):
-        return dict(task=self.task, demos=self.demos, models=self.models, seed=self.seed, manifold=getattr(self, "manifold", None), sub=sub, caps=self.caps)
+        return dict(task=self.task, demos=self.demos, models=self.models, seed=self.seed, manifold=getattr(self, "manifold", None), sub=sub, caps=self.caps,
+                    obs_fn=self.obs_fn, obs_dim=self.obs_dim)
 
     def _build_slot(self, parent, slot):
         nid = self.g.child_in(parent, slot)
@@ -233,10 +240,11 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         tk = GenTask(TR.Layout(cell.layout), "none", 64, 1000 + seed, device)
         demos = demos if demos is not None else load_demos(settings.demo_path(cell.layout), device)
         t0 = time.time()
-        stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps())
+        obs_fn, obs_dim = cell.obs()
+        stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps(), obs_fn=obs_fn, obs_dim=obs_dim)
         if isinstance(stack.controller, dict) and stack.controller.get("kind") in ("ppo", "ppo_residual"):
             stack.controller = train_rl(stack.controller, tk, seed, rl_steps if rl_steps is not None else cfg["rl_steps"], device,
-                                        n_envs=min(512, max(8, episodes * 4)))
+                                        n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)
         res.train_s = time.time() - t0
         res.infer_ms = latency_ms(stack, device) if device.type == "cpu" else float("nan")
         if np.isfinite(res.infer_ms) and res.infer_ms > 50:

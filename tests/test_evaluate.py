@@ -90,3 +90,15 @@ def test_residual_controller_starts_as_its_base_and_trains(cpu, small_demos, tmp
     r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
     assert r.valid, r.invalid_reason + r.error
     assert r.has_rl and r.per_disturbance["none"] > 0.5            # a zero residual on a PD that succeeds undisturbed
+
+
+def test_partial_observation_cell_runs_learned_controllers(cpu, small_demos, tmp_path):
+    G = Grammar(load_all())
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.ppo", (("clip", 0.2), ("ent", 1e-3), ("lr", 3e-4))),
+             Node("c", "data.demos", (("mult", 1), ("n_demo", 5))))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge("b", "data", "c"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    r = evaluate(g, Cell(0, "L1", ("none",), env="E2"), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
+    assert r.valid, r.invalid_reason + r.error
+    from sb.search.cells import rung0_cells
+    assert {c["cell"].env for c in rung0_cells()} == {"E1", "E2"}

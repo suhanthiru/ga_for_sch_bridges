@@ -67,8 +67,8 @@ class ModeOracle(MPCOracle):
     """MPPI with the true map and the wall geometry, toward the robot's chosen mode."""
     WALL = 5.0
 
-    def __init__(self, tk, seed=0, cost="greedy"):
-        super().__init__(tk, seed=seed, cost=cost)
+    def __init__(self, tk, seed=0, cost="greedy", **kw):
+        super().__init__(tk, seed=seed, cost=cost, **kw)
         self.mode = None
 
     @torch.no_grad()
