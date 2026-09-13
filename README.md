@@ -30,9 +30,22 @@ bench/        throughput measurements for the pilot
 
 ```
 pip install -e .[dev]
-pytest
-python -m sb.cli demos
-python -m sb.cli diag relabel
-python -m sb.cli gate --seed 0
-python -m sb.cli report gate
+pytest                                   # fast suite; add -m slow for the oracle gates
+python -m sb.cli demos                   # regenerate the demo sets (sha256 in SEARCH_PLAN)
+python -m sb.cli gate --seed 0           # gate cells for one seed (see SEARCH_PLAN 0)
+python -m sb.cli report gate             # tables and FINDINGS_generator.md
+bash bench/run_all.sh                    # throughput pilot on a quiet GPU; then bench/report.py
+python -m sb.cli audit                   # every family's oracle against a 10x planner
+python -m sb.cli freeze --pilot          # component tests, then grammar_pilot/manifest.json
+python search.py --pilot --budget 1000 --out results/search/pilot_t1   # a search tranche
+python -m sb.cli report search --pilot --root results/search/pilot_t1  # interim report
 ```
+
+## Where things stand
+
+- Gate (SEARCH_PLAN 0): verdict "neither" on seeds 0-4 and on the replication; the
+  bridge's edge as a data generator is its states, not its labels (FINDINGS_generator.md).
+- Pilot bench (0.4): environment step and grid bridges pass by orders of magnitude;
+  neural per-mutant bridges and population PPO are pruned per the rule (PLAN_CHANGES).
+- Environment family E1-E8 behind one interface, every oracle audited; grammar frozen
+  for the pilot; search tranche 1 running.
