@@ -198,11 +198,17 @@ def latency_ms(stack, device):
     return (time.perf_counter() - t0) / 50 * 1e3
 
 
-def fitness_of(success, collision, train_s, pd_train_s=1.0):
-    return success - 0.02 * np.log(max(train_s, 1e-3) / pd_train_s + 1.0) - 0.05 * collision
+DEFAULT_WEIGHTS = dict(compute=0.02, collision=0.05)
 
 
-def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, episodes=None, ablate=None, demos=None, rl_steps=None):
+def fitness_of(success, collision, train_s, pd_train_s=1.0, weights=None):
+    """SEARCH_PLAN 2.7: success minus a log-compute penalty relative to the PD's training
+    time minus a collision penalty; the weights are what the sensitivity study scales."""
+    w = dict(DEFAULT_WEIGHTS, **(weights or {}))
+    return success - w["compute"] * np.log(max(train_s, 1e-3) / pd_train_s + 1.0) - w["collision"] * collision
+
+
+def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, episodes=None, ablate=None, demos=None, rl_steps=None, weights=None):
     device = device or settings.device(); cfg = RUNGS[rung]; episodes = episodes or cfg["episodes"]
     models_dir = models_dir or (settings.RESULTS / "search" / "models"); models_dir.mkdir(parents=True, exist_ok=True)
     res = EvalResult(eval_id_of(genome, cell.cell_id, rung, seed), genome.gid, genome.sid, cell.cell_id, rung, seed,
@@ -228,9 +234,9 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         res.invariants = sc["invariants"]; res.quarantined = bool(tripped(sc["invariants"]))
         if sc["oracle_reads"]:
             res.valid, res.invalid_reason = False, "oracle read at test time"; return res
-        res.fitness = fitness_of(res.success, res.collision, res.train_s)
+        res.fitness = fitness_of(res.success, res.collision, res.train_s, weights=weights)
         if (ablate if ablate is not None else rung >= 2) and res.has_bridge:
-            ab = evaluate(ablate_bridges(genome, grammar), cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos, rl_steps=rl_steps)
+            ab = evaluate(ablate_bridges(genome, grammar), cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos, rl_steps=rl_steps, weights=weights)
             res.ablation_delta, res.ablation_eval_id = res.fitness - ab.fitness, ab.eval_id
     except Exception as e:                                   # logged, never silently dropped
         res.valid, res.invalid_reason, res.error = False, "exception", f"{type(e).__name__}: {e}"

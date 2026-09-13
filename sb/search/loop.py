@@ -23,13 +23,16 @@ from sb.search.surrogate import Surrogate
 CHECKPOINT_EVERY = 100
 
 
-def dummy_evaluate(genome, cell_desc, rung, seed, grammar):
-    """A stand-in with the evaluator's row shape: fitness from a hash of the genome and
-    the cell, so it is deterministic and structured, and every genome is valid."""
+def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
+    """A stand-in with the evaluator's row shape: success from a hash of the genome and
+    the cell (deterministic and structured), a synthetic collision rate and compute, and
+    the fitness recombined with the same weights the real evaluator uses."""
+    from sb.search.evaluate import fitness_of
     h = int(genome.gid[:8], 16) ^ int(abs(hash(tuple(round(x, 3) for x in cell_desc))) % (1 << 30))
     rng = np.random.default_rng(h % (1 << 32))
-    f = float(rng.beta(2, 3)) + 0.02 * len(genome.nodes)
-    return dict(valid=True, fitness=f, success=f, collision=0.0, energy=1.0, cvar_01=f / 2, worst_of_20=f / 3, train_s=0.1, eval_s=0.0,
+    succ = float(rng.beta(2, 3)) + 0.02 * len(genome.nodes); coll = float(rng.beta(1, 8)); train_s = float(1 + 20 * rng.random())
+    f = fitness_of(succ, coll, train_s, weights=weights)
+    return dict(valid=True, fitness=f, success=succ, collision=coll, energy=1.0, cvar_01=succ / 2, worst_of_20=succ / 3, train_s=train_s, eval_s=0.0,
                 has_bridge=grammar.has_tag(genome, "bridge"), has_rl=grammar.has_tag(genome, "rl"), invalid_reason="", error="")
 
 

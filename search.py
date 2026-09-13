@@ -15,11 +15,11 @@ from sb.search.freeze import load_frozen
 from sb.search.loop import Search, dummy_evaluate
 
 
-def real_evaluate(genome, cell_desc, rung, seed, grammar):
+def real_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
     from sb.envs.family import AXES
     d = dict(zip(AXES, cell_desc))
     cell = Cell(cell_id=0, layout="L1", descriptor={})
-    r = evaluate(genome, cell, rung, seed, grammar)
+    r = evaluate(genome, cell, rung, seed, grammar, weights=weights)
     return r.row()
 
 
