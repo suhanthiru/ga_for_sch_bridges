@@ -70,3 +70,22 @@ def test_fixed_cells_become_the_map(tmp_path):
     assert s.map.n == 8 and all(s.map.cell_of(v) == i for i, v in enumerate(fixed))
     s.run(budget=30, stop_after_flat=10_000)
     assert set(s.archive.frame().cell) <= set(range(8))
+
+
+def test_control_searches_never_propose_the_excluded_tag_and_keep_the_hash(tmp_path):
+    import pytest
+    G = Grammar(load_all()); seeds = _seeds(G, 12)
+    assert any(G.has_tag(g, "bridge") for g in seeds)                     # the seed set does carry bridges
+    msgs = []
+    s = Search(G, tmp_path / "nb", seeds, dummy_evaluate, n_cells=30, log=msgs.append, control="no_bridge")
+    assert len(s.seeds) < len(seeds) and all(not G.has_tag(g, "bridge") for g in s.seeds) and "control no_bridge" in msgs[0]
+    s.run(budget=80, stop_after_flat=1000)
+    df = s.archive.frame(include_excluded=True)
+    assert len(df) >= 80 and not df["has_bridge"].any() and (df["control"] == "no_bridge").all() and (df["grammar_hash"] == G.hash).all()
+    r = Search(G, tmp_path / "nb", seeds, dummy_evaluate, n_cells=30, log=lambda m: None, control="no_bridge")
+    assert r.resume()
+    with pytest.raises(AssertionError):
+        Search(G, tmp_path / "nb", seeds, dummy_evaluate, n_cells=30, log=lambda m: None, control="none").resume()
+    nr = Search(G, tmp_path / "nr", seeds, dummy_evaluate, n_cells=30, log=lambda m: None, control="no_rl")
+    nr.run(budget=40, stop_after_flat=1000)
+    assert not nr.archive.frame(include_excluded=True)["has_rl"].any()

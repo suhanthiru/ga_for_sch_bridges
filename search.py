@@ -28,16 +28,17 @@ def main():
     ap.add_argument("--resume", action="store_true"); ap.add_argument("--algorithm", default="mapelites", choices=["mapelites", "random"])
     ap.add_argument("--pilot", action="store_true"); ap.add_argument("--dummy", action="store_true"); ap.add_argument("--cells", type=int, default=2000)
     ap.add_argument("--out", default=""); ap.add_argument("--rung2-seeds", type=int, default=10)
+    ap.add_argument("--control", default="none", choices=["none", "no_bridge", "no_rl"])
     a = ap.parse_args()
     if not Path(a.plan).exists():
         sys.exit(f"{a.plan} not found; the plan is pre-registered before the search runs")
     G, man = load_frozen(pilot=a.pilot)
     gdir = settings.ROOT / ("grammar_pilot" if a.pilot else "grammar")
     seeds = [Genome.from_json(l) for l in (gdir / "seeds.jsonl").read_text().splitlines() if l.strip()]
-    root = Path(a.out) if a.out else settings.RESULTS / ("search_dummy" if a.dummy else "search") / a.algorithm
+    root = Path(a.out) if a.out else settings.RESULTS / ("search_dummy" if a.dummy else "search") / (a.algorithm if a.control == "none" else a.control)
     from sb.search.cells import rung0_cells
     fixed = [c["vector"] for c in rung0_cells()]                 # rung 0 proposes on the eight fixed cells
-    s = Search(G, root, seeds, dummy_evaluate if a.dummy else real_evaluate, n_cells=a.cells, algorithm=a.algorithm, cells=fixed)
+    s = Search(G, root, seeds, dummy_evaluate if a.dummy else real_evaluate, n_cells=a.cells, algorithm=a.algorithm, cells=fixed, control=a.control)
     s.rung_seeds[2] = tuple(range(10, 10 + a.rung2_seeds))
     if a.resume:
         s.resume()

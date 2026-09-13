@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from sb.core.genome import Genome, Provenance
+from sb.core.grammar import NO_BRIDGE, NO_RL, Grammar
 from sb.core.novelty import SeedSet, novelty
 from sb.envs.family import AXES
 from sb.search.algos.cma_emitter import CMAEmitter
@@ -22,6 +23,9 @@ from sb.search.ladder import HOLD, after_rung0, due_for_validation, is_jump
 from sb.search.surrogate import Surrogate
 
 CHECKPOINT_EVERY = 100
+# the control searches (SEARCH_PLAN 5.8): proposals come from the filtered view of the same
+# frozen grammar, rows carry the full grammar's hash and the control's name
+CONTROLS = {"none": (None, None), "no_bridge": (NO_BRIDGE, "bridge"), "no_rl": (NO_RL, "rl")}
 
 
 def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
@@ -41,14 +45,23 @@ def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
 
 
 class Search:
-    def __init__(self, grammar, root, seeds, evaluate, n_cells=2000, cvt_seed=0, algorithm="mapelites", seed=0, log=print, cells=None):
+    def __init__(self, grammar, root, seeds, evaluate, n_cells=2000, cvt_seed=0, algorithm="mapelites", seed=0, log=print, cells=None,
+                 control="none"):
         """cells: optional list of descriptor vectors the search may propose (rung 0 uses the
-        eight fixed cells); None draws uniformly over the bins."""
+        eight fixed cells); None draws uniformly over the bins. control: none | no_bridge |
+        no_rl - the proposal operators run on the filtered grammar, seeds carrying the
+        excluded tag are dropped, every row records the control."""
         self.G, self.root, self.evaluate, self.log = grammar, Path(root), evaluate, log
+        filt, self.control_tag = CONTROLS[control]; self.control = control
+        self.Gp = Grammar(grammar.registry, root_slots=grammar.root_slots, filt=filt, flags=grammar.flags) if filt else grammar
         self.cells = [list(map(float, c)) for c in cells] if cells else None
         self.archive = Archive(self.root)
         self.map = EliteMap.load_or_make(self.root / "cvt_centroids.npy", len(AXES), n_cells, cvt_seed, fixed=cells)
-        self.seeds = list(seeds); self.seed_set = SeedSet.from_genomes(self.seeds)
+        seeds = list(seeds)
+        if self.control_tag:
+            kept = [g for g in seeds if not grammar.has_tag(g, self.control_tag)]
+            log(f"control {control}: {len(kept)} of {len(seeds)} seeds carry no {self.control_tag} component"); seeds = kept
+        self.seeds = seeds; self.seed_set = SeedSet.from_genomes(self.seeds)
         self.rng = np.random.default_rng(seed); self.algorithm = algorithm
         self.gen, self.n_evals, self.pending = 0, 0, list(range(len(self.seeds)))
         self.emitters, self.queue, self.batch = {}, [], None      # CMA-MAE: per-structure emitters, queued samples, open batch
@@ -73,7 +86,7 @@ class Search:
         parent = Genome.from_json(self.archive.genome_json(e["gid"]))
         em = self.emitters.get(parent.sid)
         if em is None:
-            em = CMAEmitter(parent, self.G, seed=int(self.rng.integers(1 << 30)))
+            em = CMAEmitter(parent, self.Gp, seed=int(self.rng.integers(1 << 30)))
             if len(self.emitters) >= 64:
                 self.emitters.pop(next(iter(self.emitters)))
             self.emitters[parent.sid] = em
@@ -86,14 +99,22 @@ class Search:
 
     def propose(self):
         """Next genome and cell: seeds first; then CMA batches on an elite's structure, or
-        mutations / crossovers of random elites."""
+        mutations / crossovers of random elites. Under a control, a proposal that still
+        carries the excluded tag (it cannot, by construction; this is the guard) is replaced
+        by a random genome of the filtered grammar."""
+        g, desc = self._propose()
+        if self.control_tag and self.G.has_tag(g, self.control_tag):
+            g = self.Gp.random_genome(self.rng, 0.6, Provenance(algorithm=self.algorithm, generation=self.gen))
+        return g, desc
+
+    def _propose(self):
         if self.pending:
             g = self.seeds[self.pending.pop(0)]; desc = self.random_cell_desc()
             return g, desc
         if self.queue:
             return self.queue.pop(0)
         if not self.map.elite or self.algorithm == "random":
-            return self.G.random_genome(self.rng, 0.6, Provenance(algorithm=self.algorithm, generation=self.gen)), self.random_cell_desc()
+            return self.Gp.random_genome(self.rng, 0.6, Provenance(algorithm=self.algorithm, generation=self.gen)), self.random_cell_desc()
         if self.rng.random() < self.p_cma and self._cma_batch():
             return self.queue.pop(0)
         cells = list(self.map.elite)
@@ -109,13 +130,13 @@ class Search:
     def _offspring(self, parent, cells):
         if len(cells) > 1 and self.rng.random() < 0.2:
             c2 = cells[int(self.rng.integers(len(cells)))]; other = Genome.from_json(self.archive.genome_json(self.map.elite[c2]["gid"]))
-            return self.G.crossover(parent, other, self.rng)
-        return self.G.mutate(parent, self.rng)
+            return self.Gp.crossover(parent, other, self.rng)
+        return self.Gp.mutate(parent, self.rng)
 
     def _row(self, g, desc, cell, rung, seed, r):
         lvl, dist = novelty(g, self.seed_set)
         row = dict(eval_id=f"{g.gid}-{cell}-r{rung}-s{seed}-{self.n_evals}", gid=g.gid, sid=g.sid, genome_json=g.to_json(), dsl=g.dsl(),
-                   grammar_hash=self.G.hash, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
+                   grammar_hash=self.G.hash, control=self.control, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
                    cell=cell, novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)})
         row.update({k: v for k, v in r.items() if k not in row})          # the loop's identifiers win over the evaluator's
         self.archive.append(row, genome=g)
@@ -163,7 +184,7 @@ class Search:
     # ---------------------------------------------------------- checkpoint
     def state(self):
         return dict(gen=self.gen, n_evals=self.n_evals, pending=self.pending, rng=self.rng.bit_generator.state, elites=self.map.state(),
-                    algorithm=self.algorithm, grammar_hash=self.G.hash, validated={str(k): v for k, v in self.validated.items()},
+                    algorithm=self.algorithm, control=self.control, grammar_hash=self.G.hash, validated={str(k): v for k, v in self.validated.items()},
                     surrogate_r2=(self.surrogate.r2 if self.surrogate is not None else None),
                     surrogate_trained_at=(self.surrogate.trained_at if self.surrogate is not None else None))
 
@@ -191,6 +212,7 @@ class Search:
         if st is None:
             return False
         assert st["grammar_hash"] == self.G.hash, "the archive was built with another grammar"
+        assert st.get("control", "none") == self.control, f"the archive is the {st.get('control', 'none')} control, not {self.control}"
         self.gen, self.n_evals, self.pending = st["gen"], st["n_evals"], list(st["pending"])
         self.rng.bit_generator.state = st["rng"]; self.map.load_state(st["elites"])
         self.validated = {int(k): v for k, v in st.get("validated", {}).items()}
