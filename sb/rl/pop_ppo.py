@@ -66,7 +66,7 @@ class PopEnv:
 
 
 class PopPPO:
-    def __init__(self, P, device, hidden=256, depth=4, obs_dim=OBS_DIM, lr=3e-4, clip=0.2, ent=0.0, gamma=0.99, lam=0.95, seed=0):
+    def __init__(self, P, device, hidden=256, depth=4, obs_dim=OBS_DIM, lr=3e-4, clip=0.2, ent=0.0, gamma=0.99, lam=0.95, seed=0, autocast=False):
         torch.manual_seed(seed)
         actors = [mlp(obs_dim, 3, hidden, depth) for _ in range(P)]; critics = [mlp(obs_dim, 1, hidden, depth) for _ in range(P)]
         self.actor_base = copy.deepcopy(actors[0]).to("meta"); self.critic_base = copy.deepcopy(critics[0]).to("meta")
@@ -78,6 +78,7 @@ class PopPPO:
         as_p = lambda x: torch.as_tensor(x, dtype=torch.float32, device=device).expand(P).clone()
         self.lr, self.clip, self.ent = as_p(lr), as_p(clip), as_p(ent)
         self.gamma, self.lam, self.P, self.device, self.step_count = gamma, lam, P, device, 0
+        self.autocast = bool(autocast) and device.type == "cuda"      # bf16 on the search rungs only (SEARCH_PLAN 0.4)
 
     # ---------------------------------------------------------------- nets
     def _split(self, params):
@@ -105,16 +106,16 @@ class PopPPO:
         O = torch.zeros(rollout, P, n, d, device=dev); A = torch.zeros(rollout, P, n, 3, device=dev)
         LP = torch.zeros(rollout, P, n, device=dev); R = torch.zeros_like(LP); D = torch.zeros_like(LP); V = torch.zeros(rollout + 1, P, n, device=dev)
         succ = torch.zeros(P, device=dev); n_done = torch.zeros(P, device=dev)
-        with torch.no_grad():
+        with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.autocast):
             for t in range(rollout):
                 o = obs.view(P, n, d)
-                mu, ls = self.actor(self.params, o)
+                mu, ls = self.actor(self.params, o); mu = mu.float()
                 a = mu + ls.exp()[:, None, :] * torch.randn(P, n, 3, generator=gen, device=dev)
-                O[t], A[t], LP[t], V[t] = o, a, self.log_prob(mu, ls, a), self.critic(self.params, o)
+                O[t], A[t], LP[t], V[t] = o, a, self.log_prob(mu, ls, a), self.critic(self.params, o).float()
                 obs, r, done, success = env.step(a.reshape(-1, 3))
                 R[t], D[t] = r.view(P, n), done.view(P, n).float()
                 succ += success.view(P, n).float().sum(1); n_done += done.view(P, n).float().sum(1)
-            V[rollout] = self.critic(self.params, obs.view(P, n, d))
+            V[rollout] = self.critic(self.params, obs.view(P, n, d)).float()
         adv = torch.zeros_like(R); last = torch.zeros(P, n, device=dev)
         for t in reversed(range(rollout)):
             nonterm = 1 - D[t]
@@ -144,7 +145,9 @@ class PopPPO:
             perm = torch.argsort(torch.rand(P, N, generator=gen, device=dev), 1)
             for i in range(0, N, mb):
                 idx = perm[:, i:i + mb]
-                grads = vgrad(self.params, b_obs[ar, idx], b_a[ar, idx], b_lp[ar, idx], b_adv[ar, idx], b_ret[ar, idx], self.clip, self.ent)
+                with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.autocast):
+                    grads = vgrad(self.params, b_obs[ar, idx], b_a[ar, idx], b_lp[ar, idx], b_adv[ar, idx], b_ret[ar, idx], self.clip, self.ent)
+                grads = {k: g.float() for k, g in grads.items()}
                 # per-genome global-norm clipping at 0.5
                 sq = sum(g.reshape(P, -1).pow(2).sum(1) for g in grads.values())
                 scale = (0.5 / (sq.sqrt() + 1e-6)).clamp(max=1.0)
