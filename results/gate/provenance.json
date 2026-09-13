@@ -1,0 +1,102 @@
+[
+ {
+  "commit": "3bb352af362f2a8a711d866d92fc4a268bccbf50",
+  "dirty": false,
+  "python": "3.11.9",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "n_demo": 20,
+  "gen_mult": 4,
+  "steps": 8000,
+  "n_eval": 200,
+  "time": "2026-09-13 10:58:45",
+  "demos": {
+   "L1": "2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5",
+   "L2": "3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f"
+  },
+  "seed": 0,
+  "smoke": false,
+  "mppi_cost": "greedy"
+ },
+ {
+  "commit": "777db1468a060b99e55ebb4a499c9f41b034d8b8",
+  "dirty": false,
+  "python": "3.11.9",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "n_demo": 20,
+  "gen_mult": 4,
+  "steps": 8000,
+  "n_eval": 200,
+  "time": "2026-09-13 11:12:30",
+  "demos": {
+   "L1": "2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5",
+   "L2": "3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f"
+  },
+  "seed": 1,
+  "smoke": false,
+  "mppi_cost": "greedy"
+ },
+ {
+  "commit": "777db1468a060b99e55ebb4a499c9f41b034d8b8",
+  "dirty": false,
+  "python": "3.11.9",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "n_demo": 20,
+  "gen_mult": 4,
+  "steps": 8000,
+  "n_eval": 200,
+  "time": "2026-09-13 11:25:50",
+  "demos": {
+   "L1": "2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5",
+   "L2": "3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f"
+  },
+  "seed": 2,
+  "smoke": false,
+  "mppi_cost": "greedy"
+ },
+ {
+  "commit": "777db1468a060b99e55ebb4a499c9f41b034d8b8",
+  "dirty": false,
+  "python": "3.11.9",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "n_demo": 20,
+  "gen_mult": 4,
+  "steps": 8000,
+  "n_eval": 200,
+  "time": "2026-09-13 11:39:33",
+  "demos": {
+   "L1": "2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5",
+   "L2": "3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f"
+  },
+  "seed": 3,
+  "smoke": false,
+  "mppi_cost": "greedy"
+ },
+ {
+  "commit": "777db1468a060b99e55ebb4a499c9f41b034d8b8",
+  "dirty": false,
+  "python": "3.11.9",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "n_demo": 20,
+  "gen_mult": 4,
+  "steps": 8000,
+  "n_eval": 200,
+  "time": "2026-09-13 11:52:32",
+  "demos": {
+   "L1": "2e60ef618b01265cefd7f6d6d99b25bd8f37f29c8c9b76f376ba8c115387fbb5",
+   "L2": "3ae7a909044bf53bbf2cd944dbaa7e2361abc8f21bc166c53dd292c40926bf4f"
+  },
+  "seed": 4,
+  "smoke": false,
+  "mppi_cost": "greedy"
+ }
+]

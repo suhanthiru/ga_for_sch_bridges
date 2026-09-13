@@ -1,6 +1,6 @@
 # Generator gate: findings
 
-Status: template, nothing run yet. Commit: 06c0d24. Pre-registration:
+Status: seeds 0-4 done, replication (seeds 5-9) running. Commit: 777db14. Pre-registration:
 SEARCH_PLAN.md section 0 at the commit that introduced it.
 
 Every table below is written by `python -m sb.cli report gate` from `sb/stats.py`.
@@ -8,7 +8,14 @@ Nothing between the table markers is edited by hand.
 
 ## 1. Setup
 
-One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
+SEARCH_PLAN section 0 fixes everything below. Eleven training-data sources for the same
+diffusion policy (plus the two sources the 0.5 fallback added), two layouts, four
+evaluation disturbances, seeds 0-4. The cells the prior run in skill_chains already had
+(g0 on both layouts, g1 on L1) are read from its shards; the rest were run here. Every
+in-family source is rolled out on the reference kinematics under one shared noise stream
+per seed, from the same starting poses, so the sources differ only in the controller
+that produced the states and labels. Tables are generated from `sb/stats.py`; the prose
+here only reads them.
 
 ## 2. Dynamic-range check
 
@@ -116,6 +123,50 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 | MPC-relabel | L1 | slip | 5 | 0.198 | [0.122, 0.274] |
 | MPC-relabel | L1 | rain | 5 | 0.226 | [0.174, 0.278] |
 | MPC-relabel | L1 | push | 5 | 0.069 | [0.033, 0.105] |
+| BRIDGE-on-PD | L1 | none | 5 | 0.944 | [0.897, 0.991] |
+| BRIDGE-on-PD | L1 | slip | 5 | 0.291 | [0.242, 0.340] |
+| BRIDGE-on-PD | L1 | rain | 5 | 0.123 | [0.099, 0.147] |
+| BRIDGE-on-PD | L1 | push | 5 | 0.072 | [0.043, 0.101] |
+| BRIDGE-on-PD | L2 | none | 5 | 0.760 | [0.655, 0.865] |
+| BRIDGE-on-PD | L2 | slip | 5 | 0.246 | [0.228, 0.264] |
+| BRIDGE-on-PD | L2 | rain | 5 | 0.121 | [0.080, 0.162] |
+| BRIDGE-on-PD | L2 | push | 5 | 0.023 | [0.012, 0.034] |
+| BRIDGE-unicycle | L2 | none | 5 | 0.730 | [0.638, 0.822] |
+| BRIDGE-unicycle | L2 | slip | 5 | 0.160 | [0.103, 0.217] |
+| BRIDGE-unicycle | L2 | rain | 5 | 0.064 | [0.045, 0.083] |
+| BRIDGE-unicycle | L2 | push | 5 | 0.017 | [0.008, 0.026] |
+| GC-diff-rollouts | L1 | none | 5 | 0.992 | [0.979, 1.005] |
+| GC-diff-rollouts | L1 | slip | 5 | 0.480 | [0.417, 0.543] |
+| GC-diff-rollouts | L1 | rain | 5 | 0.240 | [0.217, 0.263] |
+| GC-diff-rollouts | L1 | push | 5 | 0.369 | [0.334, 0.404] |
+| GC-diff-rollouts | L2 | none | 5 | 0.363 | [0.115, 0.611] |
+| GC-diff-rollouts | L2 | slip | 5 | 0.162 | [0.080, 0.244] |
+| GC-diff-rollouts | L2 | rain | 5 | 0.072 | [0.029, 0.115] |
+| GC-diff-rollouts | L2 | push | 5 | 0.040 | [0.030, 0.050] |
+| MPC-oracle | L1 | none | 5 | 0.999 | [0.996, 1.002] |
+| MPC-oracle | L1 | slip | 5 | 0.754 | [0.725, 0.783] |
+| MPC-oracle | L1 | rain | 5 | 0.392 | [0.304, 0.480] |
+| MPC-oracle | L1 | push | 5 | 0.493 | [0.465, 0.521] |
+| MPC-oracle | L2 | none | 5 | 0.841 | [0.686, 0.996] |
+| MPC-oracle | L2 | slip | 5 | 0.466 | [0.436, 0.496] |
+| MPC-oracle | L2 | rain | 5 | 0.215 | [0.149, 0.281] |
+| MPC-oracle | L2 | push | 5 | 0.130 | [0.108, 0.152] |
+| MPC-relabel | L2 | none | 5 | 0.005 | [-0.004, 0.014] |
+| MPC-relabel | L2 | slip | 5 | 0.136 | [0.095, 0.177] |
+| MPC-relabel | L2 | rain | 5 | 0.094 | [0.081, 0.107] |
+| MPC-relabel | L2 | push | 5 | 0.032 | [0.023, 0.041] |
+| PD-iso | L2 | none | 5 | 0.871 | [0.768, 0.974] |
+| PD-iso | L2 | slip | 5 | 0.368 | [0.243, 0.493] |
+| PD-iso | L2 | rain | 5 | 0.171 | [0.116, 0.226] |
+| PD-iso | L2 | push | 5 | 0.175 | [0.108, 0.242] |
+| PD-relabel | L1 | none | 5 | 0.996 | [0.988, 1.004] |
+| PD-relabel | L1 | slip | 5 | 0.759 | [0.686, 0.832] |
+| PD-relabel | L1 | rain | 5 | 0.401 | [0.351, 0.451] |
+| PD-relabel | L1 | push | 5 | 0.645 | [0.573, 0.717] |
+| PD-relabel | L2 | none | 5 | 0.900 | [0.759, 1.041] |
+| PD-relabel | L2 | slip | 5 | 0.385 | [0.301, 0.469] |
+| PD-relabel | L2 | rain | 5 | 0.188 | [0.138, 0.238] |
+| PD-relabel | L2 | push | 5 | 0.159 | [0.139, 0.179] |
 <!-- /tables:cells -->
 
 ## 5. Primary contrast F1: BRIDGE-slip minus PD-noise
@@ -138,44 +189,58 @@ One paragraph pointing at SEARCH_PLAN section 0. No numbers here.
 <!-- tables:F2 -->
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
-| F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | push | 5 | 0.156 | [0.125, 0.187] | [0.137, 0.178] | 0.000 | 0.000 | pass |
+| F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | push | 5 | 0.156 | [0.125, 0.187] | [0.137, 0.178] | 0.000 | 0.001 | pass |
 | F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | rain | 5 | 0.128 | [0.092, 0.164] | [0.104, 0.149] | 0.001 | 0.001 | pass |
-| F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | slip | 5 | 0.347 | [0.264, 0.430] | [0.299, 0.402] | 0.000 | 0.000 | pass |
-| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
+| F2 (BRIDGE-slip - BRIDGE-unicycle) | L1 | slip | 5 | 0.347 | [0.264, 0.430] | [0.299, 0.402] | 0.000 | 0.001 | pass |
+| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | push | 5 | 0.059 | [0.019, 0.099] | [0.035, 0.085] | 0.015 | 0.018 | null |
+| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | rain | 5 | 0.048 | [0.005, 0.091] | [0.022, 0.075] | 0.035 | 0.035 | null |
+| F2 (BRIDGE-slip - BRIDGE-unicycle) | L2 | slip | 5 | 0.158 | [0.100, 0.216] | [0.118, 0.191] | 0.002 | 0.002 | pass |
 <!-- /tables:F2 -->
 
 <!-- tables:F3 -->
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
-| F3 (PD-noise - PD-iso) | L1 | push | 5 | -0.023 | [-0.086, 0.040] | [-0.062, 0.016] | 0.367 | 0.367 | null |
-| F3 (PD-noise - PD-iso) | L1 | rain | 5 | -0.032 | [-0.076, 0.012] | [-0.059, -0.004] | 0.116 | 0.225 | null |
-| F3 (PD-noise - PD-iso) | L1 | slip | 5 | -0.090 | [-0.230, 0.050] | [-0.176, 0.004] | 0.150 | 0.225 | null |
-| F3 (PD-noise - PD-iso) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F3 (PD-noise - PD-iso) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F3 (PD-noise - PD-iso) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
+| F3 (PD-noise - PD-iso) | L1 | push | 5 | -0.023 | [-0.086, 0.040] | [-0.062, 0.016] | 0.367 | 0.440 | null |
+| F3 (PD-noise - PD-iso) | L1 | rain | 5 | -0.032 | [-0.076, 0.012] | [-0.059, -0.004] | 0.116 | 0.404 | null |
+| F3 (PD-noise - PD-iso) | L1 | slip | 5 | -0.090 | [-0.230, 0.050] | [-0.176, 0.004] | 0.150 | 0.404 | null |
+| F3 (PD-noise - PD-iso) | L2 | push | 5 | -0.027 | [-0.097, 0.043] | [-0.075, 0.006] | 0.345 | 0.440 | null |
+| F3 (PD-noise - PD-iso) | L2 | rain | 5 | -0.020 | [-0.088, 0.048] | [-0.058, 0.029] | 0.463 | 0.463 | null |
+| F3 (PD-noise - PD-iso) | L2 | slip | 5 | -0.035 | [-0.099, 0.029] | [-0.074, 0.006] | 0.202 | 0.404 | null |
 <!-- /tables:F3 -->
 
 ### 6.2 Action labels (F4a, F4b; F4 reported, not in the rule)
 
 <!-- tables:F4a -->
-not run
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F4a (PD-relabel - BRIDGE-slip) | L1 | push | 5 | 0.449 | [0.354, 0.544] | [0.382, 0.500] | 0.000 | 0.001 | pass |
+| F4a (PD-relabel - BRIDGE-slip) | L1 | rain | 5 | 0.218 | [0.168, 0.268] | [0.188, 0.248] | 0.000 | 0.001 | pass |
+| F4a (PD-relabel - BRIDGE-slip) | L1 | slip | 5 | 0.254 | [0.176, 0.332] | [0.205, 0.303] | 0.001 | 0.002 | pass |
+| F4a (PD-relabel - BRIDGE-slip) | L2 | push | 5 | 0.083 | [0.041, 0.125] | [0.055, 0.111] | 0.005 | 0.008 | inconclusive |
+| F4a (PD-relabel - BRIDGE-slip) | L2 | rain | 5 | 0.076 | [0.025, 0.127] | [0.050, 0.111] | 0.014 | 0.017 | inconclusive |
+| F4a (PD-relabel - BRIDGE-slip) | L2 | slip | 5 | 0.067 | [-0.046, 0.180] | [-0.005, 0.141] | 0.176 | 0.176 | inconclusive |
 <!-- /tables:F4a -->
 
 <!-- tables:F4b -->
-not run
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F4b (BRIDGE-on-PD - PD-noise) | L1 | push | 5 | -0.441 | [-0.532, -0.350] | [-0.502, -0.389] | 0.000 | 0.001 | null |
+| F4b (BRIDGE-on-PD - PD-noise) | L1 | rain | 5 | -0.172 | [-0.214, -0.130] | [-0.198, -0.146] | 0.000 | 0.001 | null |
+| F4b (BRIDGE-on-PD - PD-noise) | L1 | slip | 5 | -0.327 | [-0.442, -0.212] | [-0.404, -0.263] | 0.001 | 0.003 | null |
+| F4b (BRIDGE-on-PD - PD-noise) | L2 | push | 5 | -0.125 | [-0.173, -0.077] | [-0.157, -0.098] | 0.002 | 0.003 | null |
+| F4b (BRIDGE-on-PD - PD-noise) | L2 | rain | 5 | -0.030 | [-0.071, 0.011] | [-0.052, -0.001] | 0.115 | 0.138 | null |
+| F4b (BRIDGE-on-PD - PD-noise) | L2 | slip | 5 | -0.087 | [-0.242, 0.068] | [-0.185, 0.011] | 0.195 | 0.195 | null |
 <!-- /tables:F4b -->
 
 <!-- tables:F4 -->
 | contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
 |---|---|---|---|---|---|---|---|---|---|
-| F4 (MPC-relabel - BRIDGE-slip) | L1 | push | 5 | -0.127 | [-0.159, -0.095] | [-0.144, -0.106] | 0.000 | 0.001 | null |
+| F4 (MPC-relabel - BRIDGE-slip) | L1 | push | 5 | -0.127 | [-0.159, -0.095] | [-0.144, -0.106] | 0.000 | 0.002 | null |
 | F4 (MPC-relabel - BRIDGE-slip) | L1 | rain | 5 | 0.043 | [-0.031, 0.117] | [0.000, 0.092] | 0.181 | 0.181 | inconclusive |
-| F4 (MPC-relabel - BRIDGE-slip) | L1 | slip | 5 | -0.307 | [-0.407, -0.207] | [-0.370, -0.244] | 0.001 | 0.002 | null |
-| F4 (MPC-relabel - BRIDGE-slip) | L2 | push | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F4 (MPC-relabel - BRIDGE-slip) | L2 | rain | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
-| F4 (MPC-relabel - BRIDGE-slip) | L2 | slip | 0 | - | [-, -] | [-, -] | - | - | inconclusive |
+| F4 (MPC-relabel - BRIDGE-slip) | L1 | slip | 5 | -0.307 | [-0.407, -0.207] | [-0.370, -0.244] | 0.001 | 0.003 | null |
+| F4 (MPC-relabel - BRIDGE-slip) | L2 | push | 5 | -0.044 | [-0.069, -0.019] | [-0.061, -0.030] | 0.008 | 0.012 | null |
+| F4 (MPC-relabel - BRIDGE-slip) | L2 | rain | 5 | -0.018 | [-0.047, 0.011] | [-0.038, -0.001] | 0.163 | 0.181 | null |
+| F4 (MPC-relabel - BRIDGE-slip) | L2 | slip | 5 | -0.182 | [-0.247, -0.117] | [-0.222, -0.142] | 0.001 | 0.003 | null |
 <!-- /tables:F4 -->
 
 ### 6.3 State coverage
@@ -183,31 +248,54 @@ not run
 <!-- tables:cov -->
 | source | layout | n | off-path cells | [off-path fraction, disturbed success] |
 |---|---|---|---|---|
+| BRIDGE-on-PD | L1 | 5 | 41.000 | [0.004, 0.162] |
+| BRIDGE-on-PD | L2 | 5 | 28.200 | [0.003, 0.130] |
 | BRIDGE-slip | L1 | 5 | 416.400 | [0.289, 0.295] |
 | BRIDGE-slip | L2 | 5 | 388.600 | [0.261, 0.169] |
 | BRIDGE-unicycle | L1 | 5 | 374.600 | [0.299, 0.084] |
+| BRIDGE-unicycle | L2 | 5 | 367.600 | [0.281, 0.080] |
 | DART | L1 | 5 | 28.800 | [0.003, 0.517] |
 | DART | L2 | 5 | 25.400 | [0.003, 0.256] |
+| GC-diff-rollouts | L1 | 5 | 159.000 | [0.047, 0.363] |
+| GC-diff-rollouts | L2 | 5 | 461.000 | [0.481, 0.091] |
 | MPC-relabel | L1 | 5 | 421.800 | [0.311, 0.164] |
+| MPC-relabel | L2 | 5 | 456.200 | [0.342, 0.087] |
 | MPPI-rollouts | L1 | 5 | 177.600 | [0.090, 0.510] |
 | MPPI-rollouts | L2 | 5 | 178.600 | [0.105, 0.253] |
 | NOISED | L1 | 5 | 290.400 | [0.092, 0.061] |
 | NOISED | L2 | 5 | 295.000 | [0.086, 0.033] |
 | PD-iso | L1 | 5 | 11.400 | [0.001, 0.524] |
+| PD-iso | L2 | 5 | 5.600 | [0.000, 0.238] |
 | PD-noise | L1 | 5 | 45.200 | [0.004, 0.475] |
 | PD-noise | L2 | 5 | 35.400 | [0.004, 0.211] |
+| PD-relabel | L1 | 5 | 472.200 | [0.376, 0.602] |
+| PD-relabel | L2 | 5 | 456.200 | [0.342, 0.244] |
 
-Spearman(coverage, disturbed success) across sources within (seed, layout): mean -0.679, 95% CI [-0.810, -0.548], n = 10
+Spearman(coverage, disturbed success) across sources within (seed, layout): mean -0.317, 95% CI [-0.421, -0.212], n = 10
 <!-- /tables:cov -->
 
 ## 7. Upper bound and the other generators (F5, F6, F7)
 
 <!-- tables:F5 -->
-not run
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | push | 5 | 0.297 | [0.246, 0.348] | [0.262, 0.324] | 0.000 | 0.001 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | rain | 5 | 0.209 | [0.134, 0.284] | [0.158, 0.258] | 0.002 | 0.002 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | slip | 5 | 0.249 | [0.196, 0.302] | [0.212, 0.279] | 0.000 | 0.001 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | push | 5 | 0.054 | [0.009, 0.099] | [0.024, 0.081] | 0.028 | 0.030 | null |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | rain | 5 | 0.103 | [0.016, 0.190] | [0.048, 0.160] | 0.030 | 0.030 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | slip | 5 | 0.148 | [0.095, 0.201] | [0.121, 0.185] | 0.001 | 0.002 | pass |
 <!-- /tables:F5 -->
 
 <!-- tables:F6 -->
-not run
+| contrast | layout | disturbance | n | delta | t 95% CI | boot 95% CI | p | q | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| F6 (GC-diff-rollouts - PD-noise) | L1 | push | 5 | -0.144 | [-0.208, -0.080] | [-0.185, -0.105] | 0.003 | 0.007 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L1 | rain | 5 | -0.055 | [-0.073, -0.037] | [-0.066, -0.044] | 0.001 | 0.004 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L1 | slip | 5 | -0.138 | [-0.219, -0.057] | [-0.196, -0.098] | 0.009 | 0.011 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | push | 5 | -0.108 | [-0.146, -0.070] | [-0.136, -0.090] | 0.001 | 0.004 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | rain | 5 | -0.079 | [-0.125, -0.033] | [-0.105, -0.049] | 0.009 | 0.011 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | slip | 5 | -0.171 | [-0.291, -0.051] | [-0.248, -0.092] | 0.017 | 0.017 | null |
 <!-- /tables:F6 -->
 
 <!-- tables:F7 -->
@@ -241,17 +329,44 @@ not run
 | count | value |
 |---|---|
 | f1_positive | 0 |
-| f4_large | 0 |
+| f4_large | 3 |
 | f1_null | 1 |
 | f3_positive | 0 |
 | n_f1 | 6 |
-| n_f4 | 0 |
+| n_f4 | 6 |
 | n_f3 | 6 |
 | n_cells | 6 |
 <!-- /tables:decision -->
 
-What this means for the `data` slot of the grammar: (filled once the verdict is in;
-the three cases are spelled out in SEARCH_PLAN 0.6).
+On seeds 0-4 the rule gives **neither**, and it is not a close call. The primary
+contrast (section 5) is negative in every disturbed cell and null against the minimum
+effect in five of six. The tracker does not care about the noise shape (section 6.1,
+F3: PD-iso is if anything better than PD-noise), so the noise model cannot be what
+matters either. The reference covariance is a real bridge-specific mechanism (F2: the
+slip reference beats the unicycle reference by a wide margin inside the bridge), but it
+only stops the bridge from being worse; it never produces a lead over the tracker.
+
+The 2x2 label isolation (section 6.2) says where the effect lives. Put the tracker's
+labels on the bridge's states and the result is the best in-family source on L1 (F4a,
+above the minimum effect in all three L1 cells, BH-significant; L2 positive but below
+the minimum effect). Put the bridge's labels on the tracker's states and the result
+drops below PD-noise by about as much (F4b). The bridge's states are not the problem;
+its drift labels are. That is consistent with the coverage table: wide off-path coverage
+correlates negatively with success across sources (Spearman well below zero), except
+for the one source that combines wide coverage with corrective labels.
+
+The oracle upper bound (F5) sits above the bridge everywhere. The two other
+generators: a goal-conditioned diffusion policy rolled out under its own sampling noise
+is worse than the tracker in every cell (F6), and the sampling MPC is indistinguishable
+from it (F7).
+
+For the `data` slot of the grammar (SEARCH_PLAN 0.6 as amended in PLAN_CHANGES): the
+slot drops BRIDGE-* and MPC-relabel and keeps the non-bridge sources; the default is the
+best of them by the cell table, which on these seeds is PD-relabel on L1 and DART /
+MPC-oracle territory on L2. PD-relabel is worth carrying forward as its own idea: the
+bridge as a state generator with a tracker as the labeller (IDEAS_NEXT.md).
+
+This verdict is provisional until section 9 reports the replication.
 
 ## 11. Minimum-effect statement
 
@@ -264,6 +379,18 @@ the three cases are spelled out in SEARCH_PLAN 0.6).
 | F1 (BRIDGE-slip - PD-noise) | L2 | push | 5 | -0.072 | [-0.122, -0.022] | [-0.102, -0.041] | 0.016 | 0.033 | null |
 | F1 (BRIDGE-slip - PD-noise) | L2 | rain | 5 | -0.039 | [-0.107, 0.029] | [-0.086, -0.004] | 0.185 | 0.222 | null |
 | F1 (BRIDGE-slip - PD-noise) | L2 | slip | 5 | -0.015 | [-0.151, 0.121] | [-0.097, 0.074] | 0.774 | 0.774 | inconclusive |
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | push | 5 | 0.297 | [0.246, 0.348] | [0.262, 0.324] | 0.000 | 0.001 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | rain | 5 | 0.209 | [0.134, 0.284] | [0.158, 0.258] | 0.002 | 0.002 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L1 | slip | 5 | 0.249 | [0.196, 0.302] | [0.212, 0.279] | 0.000 | 0.001 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | push | 5 | 0.054 | [0.009, 0.099] | [0.024, 0.081] | 0.028 | 0.030 | null |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | rain | 5 | 0.103 | [0.016, 0.190] | [0.048, 0.160] | 0.030 | 0.030 | pass |
+| F5 (MPC-oracle - BRIDGE-slip) | L2 | slip | 5 | 0.148 | [0.095, 0.201] | [0.121, 0.185] | 0.001 | 0.002 | pass |
+| F6 (GC-diff-rollouts - PD-noise) | L1 | push | 5 | -0.144 | [-0.208, -0.080] | [-0.185, -0.105] | 0.003 | 0.007 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L1 | rain | 5 | -0.055 | [-0.073, -0.037] | [-0.066, -0.044] | 0.001 | 0.004 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L1 | slip | 5 | -0.138 | [-0.219, -0.057] | [-0.196, -0.098] | 0.009 | 0.011 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | push | 5 | -0.108 | [-0.146, -0.070] | [-0.136, -0.090] | 0.001 | 0.004 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | rain | 5 | -0.079 | [-0.125, -0.033] | [-0.105, -0.049] | 0.009 | 0.011 | null |
+| F6 (GC-diff-rollouts - PD-noise) | L2 | slip | 5 | -0.171 | [-0.291, -0.051] | [-0.248, -0.092] | 0.017 | 0.017 | null |
 | F7 (MPPI-rollouts - PD-noise) | L1 | push | 5 | -0.020 | [-0.109, 0.069] | [-0.083, 0.032] | 0.568 | 0.568 | null |
 | F7 (MPPI-rollouts - PD-noise) | L1 | rain | 5 | 0.055 | [-0.046, 0.156] | [-0.013, 0.119] | 0.205 | 0.409 | inconclusive |
 | F7 (MPPI-rollouts - PD-noise) | L1 | slip | 5 | 0.068 | [-0.053, 0.189] | [-0.007, 0.143] | 0.194 | 0.409 | inconclusive |
@@ -274,4 +401,13 @@ the three cases are spelled out in SEARCH_PLAN 0.6).
 
 ## 12. Deviations from the plan
 
-Links to PLAN_CHANGES.md entries and ERRORS.md entries raised during this section.
+- PLAN_CHANGES 2026-09-13 (0.6 wording): the "neither" candidate set for the data slot
+  was widened to every non-bridge source before any cell ran.
+- PLAN_CHANGES 2026-09-13 (0.5 fired): MPC-relabel failed the diagnostic under both
+  costs and left the decision rule; the 2x2 label isolation replaced it. MPC-relabel is
+  still tabulated (F4, greedy cost) but not used.
+- ERRORS.md 2026-09-13: the prior g1 loaded Phase 2's bridge nets for BRIDGE-slip on
+  seeds 0-4, a different training budget from the other bridge arm; the replication
+  set trains every arm at BRIDGE_CFG.
+- CVaR (section 8) needs per-episode records for both sources of a contrast; the prior
+  cells have none, so it is reported from the replication set only.
