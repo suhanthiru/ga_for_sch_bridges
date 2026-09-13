@@ -23,7 +23,7 @@ from sb.envs.gen_task import GenTask
 from sb.envs.e2_partial import OBS_PARTIAL_DIM, obs_partial
 from sb.policies.common import OBS_DIM, obs_of
 from sb.policies.demos import load_demos
-from sb.rl.pop_ppo import PopEnv, PopPPO
+from sb.rl.pop_ppo import SCALE, PopEnv, PopPPO
 from sb.search.invariants import check_episode_set, tripped
 
 DISTS = ("none", "slip", "rain", "push")
@@ -97,8 +97,9 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
     """PPO for one genome. `ppo`: BC warm start on the recipe's data, then `steps` env
     steps. `ppo_residual`: a bounded residual on the recipe's base controller, warm-started
     at zero. Returns a controller (g, k, tau, step) -> (u, None)."""
-    residual = recipe["kind"] == "ppo_residual"
-    env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3), obs_fn=obs_fn)
+    residual = recipe["kind"] in ("ppo_residual", "ppo_noise"); noise = recipe["kind"] == "ppo_noise"
+    env = PopEnv(tk, 1, n_envs, base=recipe["base"] if residual else None, bound=recipe.get("bound", 0.3), obs_fn=obs_fn,
+                 mode="noise" if noise else ("residual" if residual else "action"))
     ppo = PopPPO(1, device, obs_dim=obs_dim, lr=recipe["lr"], clip=recipe["clip"], ent=recipe["ent"], seed=seed, autocast=(device.type == "cuda"))
     gen = torch.Generator(device=device).manual_seed(seed)
     if residual:
@@ -118,6 +119,10 @@ def train_rl(recipe, tk, seed, steps, device, n_envs=512, rollout=32, log=lambda
         if not residual:
             return a, None
         ub, _ = base(g, k, tau, step)
+        if noise:
+            raw = a / SCALE.to(a.device)                       # undo the action scale: the first coordinate is tanh(a)
+            sig = env.sigma_of(torch.atanh(raw.clamp(-0.999, 0.999)))
+            return TK.clip_u(ub) + sig * torch.randn_like(ub), None
         return TK.clip_u(ub) + bound * a, None                 # act() already applied tanh and the action scale
     return ctl
 
@@ -242,9 +247,13 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         t0 = time.time()
         obs_fn, obs_dim = cell.obs()
         stack = Stack(genome, grammar, tk, demos, models_dir, seed, Caps(), obs_fn=obs_fn, obs_dim=obs_dim)
+        budget = rl_steps if rl_steps is not None else cfg["rl_steps"]
         if isinstance(stack.controller, dict) and stack.controller.get("kind") in ("ppo", "ppo_residual"):
-            stack.controller = train_rl(stack.controller, tk, seed, rl_steps if rl_steps is not None else cfg["rl_steps"], device,
+            stack.controller = train_rl(stack.controller, tk, seed, budget, device, n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)
+        if isinstance(stack.noise, dict) and stack.noise.get("kind") == "rl_noise":
+            stack.controller = train_rl(dict(stack.noise, kind="ppo_noise", base=stack.controller), tk, seed, budget, device,
                                         n_envs=min(512, max(8, episodes * 4)), obs_fn=obs_fn, obs_dim=obs_dim)
+            stack.noise = None                                  # the trained controller carries its own noise now
         res.train_s = time.time() - t0
         res.infer_ms = latency_ms(stack, device) if device.type == "cpu" else float("nan")
         if np.isfinite(res.infer_ms) and res.infer_ms > 50:

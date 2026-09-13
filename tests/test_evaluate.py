@@ -102,3 +102,14 @@ def test_partial_observation_cell_runs_learned_controllers(cpu, small_demos, tmp
     assert r.valid, r.invalid_reason + r.error
     from sb.search.cells import rung0_cells
     assert {c["cell"].env for c in rung0_cells()} == {"E1", "E2"}
+
+
+def test_rl_noise_placement_trains_around_the_controller(cpu, small_demos, tmp_path):
+    G = Grammar(load_all())
+    nodes = (Node("a", "manifold.se2"), Node("b", "controller.pd", (("kp", 6.0),)), Node("c", "noise.rl", (("clip", 0.2), ("ent", 1e-3), ("lr", 3e-4))))
+    edges = (Edge(ROOT, "manifold", "a"), Edge(ROOT, "controller", "b"), Edge(ROOT, "noise", "c"))
+    g = Genome(nodes, edges).canonical(G.slot_order)
+    assert G.validate(g) == [] and G.has_tag(g, "rl")
+    r = evaluate(g, Cell(0, "L1", ("none",)), 0, 0, G, models_dir=tmp_path, device=cpu, episodes=8, demos=small_demos, rl_steps=256)
+    assert r.valid, r.invalid_reason + r.error
+    assert r.per_disturbance["none"] > 0.5

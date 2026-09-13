@@ -76,7 +76,7 @@ def test_augment(reg, ctx):
 
 def test_small_slots(reg, ctx):
     assert _build(reg, "trigger.distance", ctx)["kind"] == "distance" and _build(reg, "noise.fixed", ctx)["sigma"] > 0
-    assert len(_build(reg, "noise.per_skill", ctx)["sigmas"]) == 3
+    assert len(_build(reg, "noise.per_skill", ctx)["sigmas"]) == 3 and _build(reg, "noise.rl", ctx)["kind"] == "rl_noise"
     assert _build(reg, "value.distance", ctx)(ctx["task"].sample(0, 4), 0).shape == (4,)
     assert _build(reg, "safety.clip", ctx)(torch.ones(2, 3) * 5).abs().max() <= 3.0
     assert _build(reg, "time_split.equal", ctx) == [100, 100, 100] and _build(reg, "adapt.none", ctx) is None

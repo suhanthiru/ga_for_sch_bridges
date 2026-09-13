@@ -38,9 +38,12 @@ class PopEnv:
     bounded residual added to the base command: u = base + bound * tanh(a). The same
     base serves every genome in the population; residuals start at zero."""
 
-    def __init__(self, tk, P, n, kinds=None, base=None, bound=0.3, obs_fn=obs_of):
+    def __init__(self, tk, P, n, kinds=None, base=None, bound=0.3, obs_fn=obs_of, mode="action", sigma_range=(1e-3, 1e-1)):
+        """mode: "action" (the policy commands the twist), "residual" (bounded correction on
+        `base`), or "noise" (the policy's first coordinate sets the log execution noise
+        added to `base`, the learned-epsilon placement)."""
         self.tk, self.P, self.n, self.N, self.device = tk, P, n, P * n, tk.device
-        self.obs_fn = obs_fn
+        self.obs_fn, self.mode, self.sigma_range = obs_fn, mode, sigma_range
         self.fe = FastEnv.from_task(tk, kinds=kinds if kinds is not None else torch.full((P * n,), FastEnv.from_task(tk).kind[0].item()))
         self.T = TK.T_SKILL
         self.base, self.bound = base, bound
@@ -53,11 +56,17 @@ class PopEnv:
     def obs(self):
         return self.obs_fn(self.tk, self.g, self.k, self.t.float() / self.T)
 
+    def sigma_of(self, a):
+        lo, hi = self.sigma_range
+        return torch.exp(0.5 * (math.log(lo) + math.log(hi)) + 0.5 * (math.log(hi) - math.log(lo)) * torch.tanh(a[:, :1]))
+
     def command(self, a):
         if self.base is None:
             return torch.tanh(a) * SCALE.to(a.device)
         k = int(self.k[0]); tau = self.t.float() / self.T          # the population shares one clock
         ub, _ = self.base(self.g, k, tau, k * self.T + int(self.t[0]))
+        if self.mode == "noise":
+            return TK.clip_u(ub) + self.sigma_of(a) * torch.randn_like(ub)
         return TK.clip_u(ub) + self.bound * torch.tanh(a) * SCALE.to(a.device)
 
     def step(self, a):

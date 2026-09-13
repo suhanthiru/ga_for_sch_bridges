@@ -241,6 +241,15 @@ class NoiseFixed:
         return dict(kind="fixed", sigma=float(params["sigma"]))
 
 
+@component("noise.rl", ("noise",), params={"lr": P.loguniform(1e-4, 1e-3), "clip": P.uniform(0.1, 0.3), "ent": P.loguniform(1e-4, 1e-2)},
+           tag="rl", cost=dict(gpu=True), test=T + "test_small_slots")
+class NoiseRL:
+    """The learned-epsilon placement: a PPO policy sets the execution noise level of the
+    controller from the state. Trained by the evaluator around the compiled controller."""
+    def build(self, params, ctx):
+        return dict(kind="rl_noise", lr=float(params["lr"]), clip=float(params["clip"]), ent=float(params["ent"]))
+
+
 @component("noise.per_skill", ("noise",), params={"s0": P.loguniform(1e-3, 1e-1), "s1": P.loguniform(1e-3, 1e-1), "s2": P.loguniform(1e-3, 1e-1)},
            test=T + "test_small_slots")
 class NoisePerSkill:
