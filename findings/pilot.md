@@ -34,3 +34,14 @@ Configurations: env cudagraph_n4096, grid float32_P4096, neural P256_bf16, ppo P
 Gate at fp32: pass; bf16 max abs err 0.03512045478978856. Determinism (two processes): {'cuda': True}. Graph replay bit-equal on repeat: {'cudagraph_n4096': True}. Diffusion: 34.3 s per 8000 steps.
 
 Pruning follows SEARCH_PLAN 0.4: any target below 50 % of its value prunes the component that depends on it; the decision goes to PLAN_CHANGES.md.
+
+## Addendum 2026-09-13: diffusion training graph-captured
+
+The diffusion policy's training step (batch draw, noise, forward, backward, Adam) is
+captured once as a CUDA graph and replayed (`sb/policies/diffusion.py`; the CPU path is
+the eager loop as before). `bench/diffusion_train.py` with pilot tranche 1 running on the
+same GPU: eager 5.16 ms/step (41 s per 8000 steps), graphed 0.69 ms/step (5.5 s). The
+quiet-machine row above (34.3 s) predates the change; the bench records both rows now.
+The graphed trainer is deterministic from the seed (tests/test_diffusion_graph.py) and
+is what the search rungs use from the next tranche on; the tranche running now is pinned
+to its worktree and keeps the eager trainer.
