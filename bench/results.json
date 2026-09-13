@@ -8,15 +8,15 @@
    "cuda": "12.8",
    "cudnn": 91900,
    "cpu_count": 16,
-   "time": "2026-09-13 15:19:01",
-   "git": "137665a",
+   "time": "2026-09-13 18:57:12",
+   "git": "b20c412",
    "gpu": "NVIDIA GeForce RTX 3080 Ti",
    "gpu_mem_total_mb": 12287,
-   "gpu_mem_free_at_start_mb": 11100,
+   "gpu_mem_free_at_start_mb": 10794,
    "triton": null,
    "gpu_util_at_start": 0,
-   "gpu_mem_used_at_start_mb": 1433,
-   "gpu_compute_apps_at_start": 33,
+   "gpu_mem_used_at_start_mb": 2973,
+   "gpu_compute_apps_at_start": 35,
    "shared_gpu": false
   },
   "runs": {
@@ -282,29 +282,39 @@
    "diffusion_train": {
     "single_b1024": {
      "batch": 1024,
-     "ms_per_step": 4.385940499778371,
-     "s_per_8000_steps": 35.08752399822697,
-     "peak_mb": 79,
-     "measured": "2026-09-13 15:06:27",
-     "git": "137665a"
+     "graphed": false,
+     "ms_per_step": 5.164015000045765,
+     "s_per_8000_steps": 41.31212000036612,
+     "peak_mb": 31,
+     "measured": "2026-09-13 18:57:11",
+     "git": "b20c412"
+    },
+    "single_b1024_graphed": {
+     "batch": 1024,
+     "graphed": true,
+     "ms_per_step": 0.6871019999380223,
+     "s_per_8000_steps": 5.496815999504179,
+     "peak_mb": 117,
+     "measured": "2026-09-13 18:57:11",
+     "git": "b20c412"
     }
    },
    "diffusion_sample": {
     "ddim10_n512": {
      "n": 512,
-     "ms_per_chunk": 10.559499962255359,
-     "env_steps_per_s_policy_in_loop": 193948.5778039225,
-     "peak_mb": 68,
-     "measured": "2026-09-13 15:06:28",
-     "git": "137665a"
+     "ms_per_chunk": 10.407750000013039,
+     "env_steps_per_s_policy_in_loop": 196776.4406329355,
+     "peak_mb": 106,
+     "measured": "2026-09-13 18:57:12",
+     "git": "b20c412"
     },
     "ddim10_n4096": {
      "n": 4096,
-     "ms_per_chunk": 12.904500006698072,
-     "env_steps_per_s_policy_in_loop": 1269634.6229219183,
-     "peak_mb": 77,
-     "measured": "2026-09-13 15:06:29",
-     "git": "137665a"
+     "ms_per_chunk": 10.158949997276068,
+     "env_steps_per_s_policy_in_loop": 1612765.0991877175,
+     "peak_mb": 116,
+     "measured": "2026-09-13 18:57:12",
+     "git": "b20c412"
     }
    },
    "ppo_update": {

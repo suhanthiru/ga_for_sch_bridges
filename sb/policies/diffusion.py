@@ -36,20 +36,46 @@ class DiffPolicy(nn.Module):
         return a.reshape(n, CHUNK, 3) * self.scale.to(obs.device)
 
 
-def train_diffusion(tk, G, U, seed, device, steps, log=lambda m: None, obs_fn=obs_of, obs_dim=OBS_DIM):
+def train_diffusion(tk, G, U, seed, device, steps, log=lambda m: None, obs_fn=obs_of, obs_dim=OBS_DIM, graphed=None, batch=1024):
+    """DDPM training on demo chunks. On CUDA the whole training step (batch draw, noise,
+    forward, backward, Adam) is captured once as a CUDA graph and replayed: the step is
+    launch-bound at this size (bench/diffusion_train.py), so the graph is the speed-up
+    the pilot report asked for. `graphed=False` keeps the eager loop (the CPU path)."""
     torch.manual_seed(seed)
-    pol = DiffPolicy(obs_dim=obs_dim).to(device); opt = torch.optim.Adam(pol.parameters(), lr=3e-4)
+    graphed = (device.type == "cuda") if graphed is None else (bool(graphed) and device.type == "cuda")
+    pol = DiffPolicy(obs_dim=obs_dim).to(device); opt = torch.optim.Adam(pol.parameters(), lr=3e-4, capturable=graphed)
     n = G.shape[0]; sc = pol.scale.to(device)
-    for _ in range(steps):
-        i = torch.randint(n, (1024,), device=device); t0 = torch.randint(300 - CHUNK + 1, (1024,), device=device)
+
+    def step():
+        i = torch.randint(n, (batch,), device=device); t0 = torch.randint(300 - CHUNK + 1, (batch,), device=device)
         g = G[i, t0]; k = t0 // TK.T_SKILL; tau = (t0 % TK.T_SKILL).float() / TK.T_SKILL
         obs = obs_fn(tk, g, k, tau)
         idx = t0[:, None] + torch.arange(CHUNK, device=device)[None]
-        a0 = (U[i[:, None], idx] / sc).clamp(-1, 1).reshape(1024, -1)
-        t = torch.randint(pol.n_train, (1024,), device=device); ab = pol.abar[t][:, None]
+        a0 = (U[i[:, None], idx] / sc).clamp(-1, 1).reshape(batch, -1)
+        t = torch.randint(pol.n_train, (batch,), device=device); ab = pol.abar[t][:, None]
         noise = torch.randn_like(a0)
         loss = ((pol(ab.sqrt() * a0 + (1 - ab).sqrt() * noise, obs, t) - noise) ** 2).mean()
-        opt.zero_grad(); loss.backward(); opt.step()
-    log(f"  diffusion loss {loss.item():.4f}")
+        loss.backward(); opt.step()
+        return loss
+
+    loss = torch.zeros((), device=device)
+    if not graphed:
+        for _ in range(steps):
+            opt.zero_grad(set_to_none=True); loss = step()
+    else:
+        warm = min(3, steps)
+        side = torch.cuda.Stream(); side.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(side):                          # warm-up on a side stream, as the capture recipe requires
+            for _ in range(warm):
+                opt.zero_grad(set_to_none=True); loss = step()
+        torch.cuda.current_stream().wait_stream(side)
+        del loss                                               # the warm-up's autograd graph must not outlive its stream
+        graph = torch.cuda.CUDAGraph()
+        opt.zero_grad(set_to_none=True)
+        with torch.cuda.graph(graph):
+            loss = step()
+        for _ in range(steps - warm):
+            graph.replay()
+    log(f"  diffusion loss {float(loss.detach()):.4f}")
     pol.eval()
     return pol

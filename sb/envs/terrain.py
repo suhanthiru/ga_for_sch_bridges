@@ -80,17 +80,28 @@ def slip_cov_body(fields, xy, scale=1.0):
 
 
 PROBES = torch.tensor([[0.06, 0.0], [-0.06, 0.0], [0.0, 0.06], [0.0, -0.06]])
+_PROBES_ON = {}
+
+
+def probes_on(device):
+    """The probe offsets resident on `device` (a host-to-device copy per call would break
+    CUDA-graph capture of anything that reads terrain features)."""
+    key = str(device)
+    if key not in _PROBES_ON:
+        _PROBES_ON[key] = PROBES.to(device)
+    return _PROBES_ON[key]
 
 
 def terrain_feats(fields, g, body_frame):
     """Local terrain features at 4 probes: (n, 4*4).  Body-frame probes for SE(2)
     (left-invariant); world-frame probes for the flat baseline."""
     n = g.shape[0]
-    off = PROBES.to(g.device).expand(n, 4, 2)
+    off = probes_on(g.device).expand(n, 4, 2)
     if body_frame:
         off = torch.einsum("nij,nkj->nki", rot(g[:, 2]), off)
     pts = (g[:, None, :2] + off).reshape(-1, 2)
-    p = lookup(fields, pts)[:, [0, 1, 3, 4]]
+    p = lookup(fields, pts)
+    p = torch.cat([p[:, :2], p[:, 3:5]], 1)                 # slices, not a list index: no host tensor per call
     return p.reshape(n, 16)
 
 
