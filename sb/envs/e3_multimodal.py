@@ -64,7 +64,8 @@ class MultiGoalTask(GenTask):
 
 
 class ModeOracle(MPCOracle):
-    """MPPI with the true map toward the robot's chosen mode."""
+    """MPPI with the true map and the wall geometry, toward the robot's chosen mode."""
+    WALL = 5.0
 
     def __init__(self, tk, seed=0, cost="greedy"):
         super().__init__(tk, seed=seed, cost=cost)
@@ -94,7 +95,10 @@ class ModeOracle(MPCOracle):
         step0 = k * TK.T_SKILL + t
         for h in range(self.H):
             u = U[:, :, h].reshape(-1, 3)
-            gs = self._model_step(gs, u, step0 + h)
+            gs_new = self._model_step(gs, u, step0 + h)
+            # the oracle knows the wall: a candidate that crosses it outside a gap pays for it
+            cost += self.WALL * self.tk.layout.collides(gs[:, :2], gs_new[:, :2]).float()
+            gs = gs_new
             xi = S.between(gs, gg); d2 = (xi[:, :2] ** 2).sum(1) + (S.HEADING_W * xi[:, 2]) ** 2
             cost += 0.3 * d2 + 0.0005 * (u ** 2).sum(1) * TK.DT
         xi = S.between(gs, gg); cost += 10.0 * ((xi[:, :2] ** 2).sum(1) + (S.HEADING_W * xi[:, 2]) ** 2)
