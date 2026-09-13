@@ -18,6 +18,7 @@ from sb.envs.family import AXES
 from sb.search.algos.cma_emitter import CMAEmitter
 from sb.search.archive import Archive
 from sb.search.elites import EliteMap
+from sb.search.surrogate import Surrogate
 
 CHECKPOINT_EVERY = 100
 
@@ -42,6 +43,8 @@ class Search:
         self.gen, self.n_evals, self.pending = 0, 0, list(range(len(self.seeds)))
         self.emitters, self.queue, self.batch = {}, [], None      # CMA-MAE: per-structure emitters, queued samples, open batch
         self.p_cma = 0.3 if algorithm == "mapelites" else 0.0
+        self.surrogate = Surrogate(grammar, seed=seed) if algorithm == "mapelites" else None
+        self.recent_sids = []
 
     # ---------------------------------------------------------------- cells
     def random_cell_desc(self):
@@ -80,13 +83,19 @@ class Search:
             return self.queue.pop(0)
         cells = list(self.map.elite)
         c = cells[int(self.rng.integers(len(cells)))]; parent = Genome.from_json(self.archive.genome_json(self.map.elite[c]["gid"]))
+        desc = self.map.elite[c]["desc"] if self.rng.random() < 0.7 else self.random_cell_desc()
+        if self.surrogate is not None and self.surrogate.ready:
+            # pre-screen ten mutants: the best three by the surrogate plus one at random
+            cands = [self._offspring(parent, cells) for _ in range(10)]
+            self.queue = [(g, desc) for g in self.surrogate.prescreen(cands, desc, self.rng, recent_sids=self.recent_sids[-50:])]
+            return self.queue.pop(0)
+        return self._offspring(parent, cells), desc
+
+    def _offspring(self, parent, cells):
         if len(cells) > 1 and self.rng.random() < 0.2:
             c2 = cells[int(self.rng.integers(len(cells)))]; other = Genome.from_json(self.archive.genome_json(self.map.elite[c2]["gid"]))
-            child = self.G.crossover(parent, other, self.rng)
-        else:
-            child = self.G.mutate(parent, self.rng)
-        desc = self.map.elite[c]["desc"] if self.rng.random() < 0.7 else self.random_cell_desc()
-        return child, desc
+            return self.G.crossover(parent, other, self.rng)
+        return self.G.mutate(parent, self.rng)
 
     def step(self):
         g, desc = self.propose()
@@ -105,6 +114,9 @@ class Search:
             if len(self.batch["fits"]) >= self.batch["n"]:
                 self.batch["emitter"].tell(self.batch["fits"], self.batch["elite_fitness"]); self.batch = None
         self.n_evals += 1; self.gen += 1
+        self.recent_sids.append(g.sid); self.recent_sids = self.recent_sids[-200:]
+        if self.surrogate is not None and self.n_evals % 50 == 0 and self.surrogate.maybe_train(self.archive.frame(), self.n_evals):
+            self.log(f"surrogate retrained at {self.n_evals}: held-out R2 {self.surrogate.r2:.3f}")
         if self.n_evals % CHECKPOINT_EVERY == 0:
             self.checkpoint()
         return row, improved
@@ -112,7 +124,9 @@ class Search:
     # ---------------------------------------------------------- checkpoint
     def state(self):
         return dict(gen=self.gen, n_evals=self.n_evals, pending=self.pending, rng=self.rng.bit_generator.state, elites=self.map.state(),
-                    algorithm=self.algorithm, grammar_hash=self.G.hash)
+                    algorithm=self.algorithm, grammar_hash=self.G.hash,
+                    surrogate_r2=(self.surrogate.r2 if self.surrogate is not None else None),
+                    surrogate_trained_at=(self.surrogate.trained_at if self.surrogate is not None else None))
 
     def checkpoint(self):
         d = self.archive.checkpoint(self.state())
