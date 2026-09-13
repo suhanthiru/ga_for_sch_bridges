@@ -86,3 +86,32 @@ is an implementation matter (the rollout runs the eager step; a graph-captured r
 would roughly halve the update time) and may be revisited without touching the grammar.
 
 Affected evaluations: none; no search cell has run.
+
+## 2026-09-13 — pilot throughput gate: 24 rung-0 evaluations per hour, below the 40 registered
+
+Evidence: results/search_probe (16 rung-0 evaluations of the frozen pilot grammar on the
+eight fixed cells, quiet machine, log and archive kept): 16 rung-0 + 28 rung-1 + 14 rung-2
+rows in 39 minutes, i.e. 24 rung-0 evaluations per hour and 89 archive rows per hour.
+Rung-0 evaluations average 23 s (a PD stack 8-10 s, a PPO or residual stack 37-121 s,
+diffusion 35 s of training); the rung-1 follow-up, which nearly every early mutant earns
+because the cells are empty, costs another two evaluations each. The first-time CPU
+bridge training per (cell, reference) is amortised and was already cached here.
+
+Rule: the pilot's throughput gate reads "at least 40 rung-0 evaluations per hour or a
+PLAN_CHANGES entry". This is the entry.
+
+Decision: the 10 % pilot proceeds as registered in every other respect, in tranches
+sized to the measured rate rather than to the plan's estimate: the first tranche is
+1 000 rung-0 evaluations (about two days of wall-clock with follow-ups), checkpointed
+every 100 and resumable. The engineering items that would restore the registered rate
+are implementation, not grammar: a graph-captured rollout inside the PPO update, several
+genomes' diffusion trainings batched with the stacked-parameter fitter, and bridge
+training on a CPU pool in parallel with GPU work. They are listed here so a later
+tranche can run faster without any change to what is being searched.
+
+One more note for the record: the ablation deltas the probe produced for the two
+bridge-controller elites are strongly negative (-0.24, -0.35); the PD in the same stack
+beats the bridge drift, exactly as the prior findings said. They stand as the first two
+rung-2 ablations of the program.
+
+Affected evaluations: none invalidated; the probe rows carry the pilot manifest hash.

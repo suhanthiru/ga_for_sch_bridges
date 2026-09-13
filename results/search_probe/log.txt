@@ -1,0 +1,45 @@
+eval 0 r0 cell 6 random/seed fitness nan valid False 0s  (stack (augment (augment.noised :mult 1)) (controller (controller.rl_residual :bound 0.6 :clip 0.287014 :ent 0.004283 :l
+eval 1 r0 cell 5 random/seed fitness 0.220 valid True 8s  (stack (adapt (adapt.none)) (augment (augment.noised :mult 16)) (controller (controller.bridge_drift :coupling ot :eps 0
+  r1 cell 5 seeds (1, 2): 0.198 0.233 (17s)
+eval 2 r0 cell 4 random/seed fitness 0.671 valid True 10s  (stack (adapt (adapt.none)) (augment (augment.noised :mult 4)) (controller (controller.pd :kp 8.497067)) (estimator (est
+  r1 cell 4 seeds (1, 2): 0.599 0.661 (20s)
+eval 3 r0 cell 2 random/seed fitness -0.006 valid True 9s  (stack (adapt (adapt.none)) (augment (augment.pd_rollouts :mult 16)) (controller (controller.pd :kp 1.051291)) (estimato
+  r1 cell 2 seeds (1, 2): -0.011 -0.004 (19s)
+eval 4 r0 cell 2 random/seed fitness -0.114 valid True 37s  (stack (augment (augment.pd_rollouts :mult 1)) (controller (controller.ppo :clip 0.285821 :ent 0.000136 :lr 0.000326 (da
+eval 5 r0 cell 0 random/seed fitness -0.045 valid True 38s  (stack (adapt (adapt.none)) (controller (controller.rl_residual :bound 0.6 :clip 0.173009 :ent 0.000144 :lr 0.000102 (ba
+  r1 cell 0 seeds (1, 2): -0.057 -0.067 (169s)
+eval 6 r0 cell 0 random/seed fitness 0.917 valid True 10s  (stack (adapt (adapt.none)) (augment (augment.pd_rollouts :mult 4)) (controller (controller.pd :kp 11.36523 (reference (
+  r1 cell 0 seeds (1, 2): 0.833 0.874 (19s)
+  r1 cell 0 seeds (101, 102): 0.865 0.879 (18s)
+eval 7 r0 cell 0 random/seed fitness 0.607 valid True 8s  (stack (adapt (adapt.none)) (controller (controller.grid_bridge :eps 0.02069 :grid 32 :iters 50 :kp_heading 2.483658)) (
+eval 8 r0 cell 1 random/seed fitness 0.769 valid True 37s  (stack (controller (controller.pd :kp 5.139018)) (manifold (manifold.se2)) (noise (noise.rl :clip 0.256238 :ent 0.000936
+  r1 cell 1 seeds (1, 2): 0.711 0.751 (86s)
+eval 9 r0 cell 6 random/seed fitness 0.240 valid True 7s  (stack (adapt (adapt.none)) (controller (controller.grid_bridge :eps 0.031039 :grid 64 :iters 50 :kp_heading 5.055752)) 
+  r1 cell 6 seeds (1, 2): 0.262 0.249 (13s)
+eval 10 r0 cell 5 random/seed fitness 0.124 valid True 121s  (stack (adapt (adapt.none)) (controller (controller.rl_residual :bound 0.1 :clip 0.23681 :ent 0.004442 :lr 0.000859 (bas
+  r1 cell 5 seeds (1, 2): 0.209 0.153 (266s)
+eval 11 r0 cell 7 random/seed fitness 0.210 valid True 9s  (stack (adapt (adapt.none)) (controller (controller.bridge_drift :coupling demo_paired :eps 0.005317 :ipf 2 :reference u
+  r1 cell 7 seeds (1, 2): 0.193 0.212 (28s)
+eval 12 r0 cell 4 random/seed fitness 0.209 valid True 21s  (stack (augment (augment.pd_rollouts :mult 1)) (controller (controller.bridge_drift :coupling minibatch_ot :eps 0.027029
+eval 13 r0 cell 4 random/seed fitness 0.698 valid True 17s  (stack (adapt (adapt.none)) (controller (controller.pd :kp 17.22929)) (estimator (estimator.ekf :window 48)) (manifold (
+  r1 cell 4 seeds (1, 2): 0.659 0.707 (20s)
+eval 14 r0 cell 7 random/seed fitness 0.139 valid True 33s  (stack (controller (controller.bridge_drift :coupling demo_paired :eps 0.059838 :ipf 5 :reference unicycle :sampler ode_
+  r1 cell 7 seeds (1, 2): 0.125 0.144 (80s)
+eval 15 r0 cell 5 random/seed fitness 0.688 valid True 9s  (stack (controller (controller.pd :kp 11.249932)) (data (data.pd_rollouts :mult 4 :n_demo 20)) (estimator (estimator.ekf
+  r1 cell 5 seeds (1, 2): 0.649 0.700 (18s)
+  r1 cell 5 seeds (101, 102): 0.688 0.676 (19s)
+  r2 cell 5 seeds (10, 11): 0.680 0.692 (40s)
+validated cell 5: rung-2 fitness 0.6856674447726971, ablation delta -5.167548577933445e-08
+  r2 cell 4 seeds (10, 11): 0.692 0.710 (41s)
+validated cell 4: rung-2 fitness 0.7010737395787475, ablation delta 0.0044374994933605305
+  r2 cell 2 seeds (10, 11): -0.000 -0.001 (21s)
+validated cell 2: rung-2 fitness -0.0008324911875786942, ablation delta None
+  r2 cell 0 seeds (10, 11): 0.869 0.881 (19s)
+validated cell 0: rung-2 fitness 0.8745737294608591, ablation delta None
+  r2 cell 1 seeds (10, 11): 0.707 0.721 (941s)
+validated cell 1: rung-2 fitness 0.7140551975688603, ablation delta 0.00017120145423049626
+  r2 cell 6 seeds (10, 11): 0.268 0.256 (32s)
+validated cell 6: rung-2 fitness 0.26161412530550465, ablation delta -0.24070962053173064
+  r2 cell 7 seeds (10, 11): 0.142 0.145 (92s)
+validated cell 7: rung-2 fitness 0.14328500862918625, ablation delta -0.35260123962203704
+checkpoint ckpt-0000058: 16 evals, 7 cells, mean elite 0.487
