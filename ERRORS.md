@@ -42,3 +42,21 @@ two before any relabel cell is run here.
 `gen_phases.phase5` ignores its seed argument and hard-codes seeds (0, 1, 2), and its
 `n_eval` argument is ignored by `train_eval`. Not part of the gate; g5 is not vendored.
 Recorded so nobody copies it later.
+
+## 2026-09-13 — every neural-bridge genome invalid in the first minutes of tranche 1 (component bug, class 2)
+
+Seen: evaluation 0 of the relaunched pilot (a `controller.bridge_drift` stack) came back
+invalid in 0 s. Reproduced on CPU: `get_bridges` passed `with_bwd=False` by keyword and
+the new `SEARCH_BRIDGE_CFG` carried `with_bwd=True`, so `train_skill` raised on the
+duplicate keyword before any training. The component test for `controller.bridge_drift`
+checked the spec, not a build, because a build trains for minutes; the freeze therefore
+passed.
+
+Handled: the run was stopped after three evaluations (kept as
+`results/search/pilot_t1_aborted_bwd_kw`, no shard written), the keyword collision fixed,
+a test added that builds the search cache at a two-step budget and checks the backward
+net and D exist (`tests/test_evaluate.py`), and the tranche relaunched from the fixed
+commit. No archive row of the pilot was produced under the bug.
+
+Lesson recorded: a component whose full build is too slow for its test still needs a
+build at a toy budget in the test; "the spec looks right" is not a component test.
