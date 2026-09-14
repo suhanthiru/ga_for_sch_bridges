@@ -220,12 +220,21 @@ class Search:
         self.log(f"checkpoint {d.name}: {self.n_evals} evals, {self.map.filled()} cells, mean elite {self.map.mean_fitness():.3f}")
         return d
 
-    def resume(self):
+    def resume(self, strict=True):
+        """Continue a run from its last verified checkpoint. `strict=False` is the
+        read-only path a report takes: an archive written under an older grammar stays
+        readable for ever (nothing is deleted, so nothing becomes unreadable), and the
+        mismatch is logged and shown in the report's source census instead of refusing."""
         st, replayed = self.archive.resume()
         if st is None:
             return False
-        assert st["grammar_hash"] == self.G.hash, "the archive was built with another grammar"
-        assert st.get("control", "none") == self.control, f"the archive is the {st.get('control', 'none')} control, not {self.control}"
+        same = st["grammar_hash"] == self.G.hash, st.get("control", "none") == self.control
+        if strict:
+            assert same[0], "the archive was built with another grammar"
+            assert same[1], f"the archive is the {st.get('control', 'none')} control, not {self.control}"
+        elif not all(same):
+            self.log(f"reading an archive built under grammar {st['grammar_hash']} / control {st.get('control', 'none')}; "
+                     f"this process is {self.G.hash} / {self.control}")
         src = self.G.source_hash()
         if st.get("source_hash") not in (None, src):
             # the grammar is the same; the component code that produced the earlier rows is

@@ -60,19 +60,50 @@ def algorithm_census(df):
     return out
 
 
-def contribution_by_slot(df, slots):
-    """Mean ablation delta of bridge-containing rows, by the slot that holds the bridge
-    (rows carry the genome; only rows with a finite ablation delta count)."""
+def bridge_slots(g, grammar):
+    """Every (slot, component) in a genome whose component is bridge-tagged, root slots and
+    sub-slots alike: the places the ablation actually substitutes."""
+    return [(e.slot, g.node(e.child).comp) for e in g.edges if grammar.spec(g.node(e.child).comp).tag == "bridge"]
+
+
+def inert_bridge(row, g, grammar):
+    """True when the genome's only bridge components could not act in this stack. Measured,
+    not assumed: a bridge trigger over a controller that reports no forward/backward
+    disagreement never fires, and the evaluation records that (ERRORS 2026-09-14)."""
+    bs = bridge_slots(g, grammar)
+    if not bs or any(slot != "trigger" for slot, _ in bs):
+        return False                                    # a bridge elsewhere in the stack does act
+    return float(row.get("trigger_fire_rate", np.nan) or 0.0) == 0.0
+
+
+def contribution_by_slot(df, slots, grammar):
+    """Mean ablation delta by the slot that *holds the bridge* - not by every slot in the
+    genome, which credited the manifold and the controller for a trigger's delta. Rows
+    whose bridge component never acted are counted separately: their delta is a property
+    of the counterfactual, not of a bridge."""
     d = df[df.has_bridge & np.isfinite(df.get("ablation_delta", np.nan))] if "ablation_delta" in df else df.iloc[0:0]
     rows = []
     for _, r in d.iterrows():
         g = Genome.from_json(r.genome_json)
-        for e in g.children(ROOT):
-            rows.append(dict(slot=e.slot, comp=g.node(e.child).comp, delta=r.ablation_delta))
+        inert = inert_bridge(r, g, grammar)
+        for slot, comp in bridge_slots(g, grammar):
+            rows.append(dict(slot=slot, comp=comp, delta=r.ablation_delta, inert=inert))
     if not rows:
-        return pd.DataFrame(columns=["slot", "n", "mean_delta"])
+        return pd.DataFrame(columns=["slot", "n", "mean_delta", "n_inert"])
     x = pd.DataFrame(rows)
-    return x.groupby("slot").agg(n=("delta", "count"), mean_delta=("delta", "mean")).reset_index()
+    act = x[~x.inert]
+    out = x.groupby("slot").agg(n=("delta", "count"), n_inert=("inert", "sum")).reset_index()
+    mean = act.groupby("slot").delta.mean().rename("mean_delta_active")
+    return out.merge(mean, on="slot", how="left")
+
+
+def source_census(df):
+    """Rows by the grammar and the component source that produced them: an archive that
+    crossed a measurement fix says so instead of averaging over both."""
+    cols = [c for c in ("grammar_hash", "source_hash", "control") if c in df]
+    if not cols:
+        return pd.DataFrame()
+    return df.groupby(cols).agg(rows=("eval_id", "count"), rung2=("rung", lambda r: int((r == 2).sum()))).reset_index()
 
 
 def map_figure(search, path, axes=("slip_scale", "push_mult")):
@@ -110,8 +141,18 @@ def interim(search, out_path, slots=None, figure=None):
     parts.append("## Components in elites\n\n" + (cc.to_markdown(index=False) if len(cc) else "none") + "\n")
     parts.append("## Negative space (enabled, never in an elite)\n\n" + ("\n".join(f"- {k}" for k in never) if never else "none") + "\n")
     parts.append("## Algorithm census\n\n" + algorithm_census(df).to_markdown(index=False) + "\n")
-    cb = contribution_by_slot(df, slots)
-    parts.append("## Bridge contribution by slot (ablation delta)\n\n" + (cb.to_markdown(index=False) if len(cb) else "no rung-2 ablations yet") + "\n")
+    cb = contribution_by_slot(df, slots, search.G)
+    parts.append("## Bridge contribution by slot (ablation delta, bridge-holding slots only)\n\n"
+                 + (cb.to_markdown(index=False) if len(cb) else "no rung-2 ablations yet") + "\n")
+    sc = source_census(df)
+    if len(sc) > 1:
+        parts.append("## Grammar and component source of these rows\n\n" + sc.to_markdown(index=False) + "\n")
+    if "trigger_fire_rate" in df:
+        t = df[np.isfinite(df.trigger_fire_rate)]
+        if len(t):
+            parts.append(f"## Trigger activity\n\nRows with a trigger: {len(t)}; never fired: "
+                         f"{int((t.trigger_fire_rate == 0).sum())}; median fire rate when it fired: "
+                         f"{float(t[t.trigger_fire_rate > 0].trigger_fire_rate.median()) if (t.trigger_fire_rate > 0).any() else float('nan'):.4f}.\n")
     if "novelty_level" in df:
         nv = df.groupby("novelty_level").size().rename("rows").reset_index()
         parts.append("## Novelty levels\n\n" + nv.to_markdown(index=False) + "\n")

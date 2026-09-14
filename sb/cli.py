@@ -103,7 +103,7 @@ def cmd_report(a):
     gdir = settings.ROOT / ("grammar_pilot" if a.pilot else "grammar")
     seeds = [Genome.from_json(l) for l in (gdir / "seeds.jsonl").read_text().splitlines() if l.strip()]
     s = Search(G, root, seeds, dummy_evaluate, n_cells=len(__import__("numpy").load(root / "cvt_centroids.npy")), log=lambda m: None)
-    if not s.resume():
+    if not s.resume(strict=False):                       # a report reads rows; it does not continue the run
         raise SystemExit("no verified checkpoint under " + str(root))
     out = root / "interim.md"
     interim(s, out, figure=root / "map.png")

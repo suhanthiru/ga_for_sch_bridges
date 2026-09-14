@@ -104,3 +104,19 @@ def test_rows_carry_the_source_hash_and_a_source_change_resumes_with_a_note(tmp_
     monkeypatch.setattr(type(G), "source_hash", staticmethod(lambda: "0" * 16))
     assert r.resume() and r.n_evals == CHECKPOINT_EVERY                      # the grammar is unchanged: the run continues
     assert any("component-source change" in m for m in msgs)
+
+
+def test_an_archive_under_an_older_grammar_stays_readable(tmp_path, monkeypatch):
+    import pytest
+    G = Grammar(load_all()); seeds = _seeds(G, 4)
+    s = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=20, log=lambda m: None)
+    for _ in range(CHECKPOINT_EVERY):
+        s.step()
+    monkeypatch.setattr(type(G), "hash", property(lambda self: "deadbeefdeadbeef"))
+    msgs = []
+    r = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=20, log=msgs.append)
+    with pytest.raises(AssertionError):
+        r.resume()                                                    # a search refuses
+    r2 = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=20, log=msgs.append)
+    assert r2.resume(strict=False) and r2.n_evals == CHECKPOINT_EVERY  # a report reads
+    assert any("built under grammar" in m for m in msgs)
