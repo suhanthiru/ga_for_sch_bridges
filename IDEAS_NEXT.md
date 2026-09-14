@@ -36,3 +36,31 @@ reported.
   grid bridge uses the continuous width. If the pilot shows the width matters, the main
   search should cache neural nets on a finer ladder or fit the marginal scaling into the
   drift net's conditioning (width as an input feature) so one net serves every width.
+
+## 2026-09-14 — a third of the pilot's bridge genomes carry a bridge that cannot act
+
+Measured on the frozen pilot seeds (`grammar_pilot/seeds.jsonl`, hash c4891ed7): 143 of
+200 seed genomes carry a bridge component, and 43 of those 143 (30 %) carry it *only* as
+`trigger.bridge_disagreement` over a controller that is not a bridge. Such a trigger reads
+the controller's forward/backward drift disagreement, which only a neural bridge drift
+reports, so it never fires: instrumented on cell 2's elite, D was available on 0 of 2400
+decisions. The first two validated cells of tranche 1 are exactly this shape and their
+ablation deltas are 2e-08 and 2e-06.
+
+The grammar is frozen and is not being changed mid-search (program section 9). The pilot's
+machinery now reports these honestly — every row carries `trigger_fire_rate` and
+`trigger_d_seen`, and `contribution_by_slot` counts inert bridges apart from active ones —
+so the map will not claim a bridge is load-bearing where nothing fired. For the next
+freeze, three options in increasing strength:
+
+- a validity rule: a bridge trigger requires a controller that exposes a disagreement
+  (the cheapest, and it removes 30 % of dead genomes from the seed population);
+- give every controller a defined disagreement observable (a PD could report the gap
+  between its command and the reference's tangent), so the trigger means something
+  everywhere and the axis is actually searched;
+- keep the inert combination deliberately as a negative control: it is the one genome
+  shape whose ablation delta *must* be zero, and it caught the ablation bug today.
+
+The third is worth keeping whichever of the first two is chosen: a component that provably
+does nothing is a free test that the ablation machinery is honest. Related: the sampler
+gene has the same character (registered, inert for a drift-executed controller).
