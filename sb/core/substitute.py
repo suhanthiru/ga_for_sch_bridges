@@ -56,13 +56,13 @@ def coverage_check(grammar, table=NEAREST_NON_BRIDGE):
     return out
 
 
-def ablate_bridges(g, grammar, rng=None, table=NEAREST_NON_BRIDGE):
-    """The same genome with every bridge-tagged node replaced by its table entry; parameters
-    are carried over by the entry's map and the rest sampled (with rng) or set to the
-    midpoint of their range. Returns a canonical genome; idempotent; identity when there
-    is no bridge node."""
-    import numpy as np
-    rng = rng or np.random.default_rng(0)
+def ablate_bridges(g, grammar, table=NEAREST_NON_BRIDGE):
+    """The same genome with every bridge-tagged node replaced by its table entry. A mapped
+    parameter is carried over only when the two components declare the *same space* (kind
+    and range): a disagreement threshold and a distance threshold share a name and nothing
+    else. Every other free parameter of the substitute takes its midpoint, so the
+    counterfactual is a fixed, neutral stack rather than a lucky draw (ERRORS 2026-09-14).
+    Returns a canonical genome; deterministic; idempotent; identity without a bridge node."""
     nodes, edges = list(g.nodes), list(g.edges)
     changed = False
     for n in list(nodes):
@@ -79,7 +79,8 @@ def ablate_bridges(g, grammar, rng=None, table=NEAREST_NON_BRIDGE):
         for k, p in sub.params.items():
             src = next((bk for bk, sk in pmap.items() if sk == k), None)
             v = old.get(src) if src is not None else None
-            params[k] = v if v is not None and p.valid(v) else p.sample(rng)
+            transfers = v is not None and p.valid(v) and src in s.params and p.same_space(s.params[src])
+            params[k] = v if transfers else p.midpoint()
         nodes[nodes.index(n)] = Node(n.nid, key, tuple(sorted(params.items())))
         edges[edges.index(e)] = Edge(e.parent, e.slot, e.child, grammar.innov(pc, e.slot, key))
         bad = {c.child for c in edges if c.parent == n.nid and c.slot not in sub.sub_slots}
@@ -92,5 +93,12 @@ def ablate_bridges(g, grammar, rng=None, table=NEAREST_NON_BRIDGE):
     out = Genome(tuple(nodes), tuple(edges), g.flags, replace(g.provenance, op="ablate", parent_ids=(g.gid,)), g.grammar_hash)
     out = out.canonical(grammar.slot_order)
     if grammar.has_tag(out, "bridge"):
-        return ablate_bridges(out, grammar, rng, table)
+        return ablate_bridges(out, grammar, table)
     return out
+
+
+def ablation_sites(g, ab):
+    """The node ids where `ab = ablate_bridges(g)` differs from `g`: the substituted nodes.
+    Substitution keeps node ids and structure, so the canonical numbering is shared."""
+    comps = {n.nid: n.comp for n in g.nodes}
+    return [n.nid for n in ab.nodes if comps.get(n.nid) != n.comp]

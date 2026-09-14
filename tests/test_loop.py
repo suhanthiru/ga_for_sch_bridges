@@ -89,3 +89,18 @@ def test_control_searches_never_propose_the_excluded_tag_and_keep_the_hash(tmp_p
     nr = Search(G, tmp_path / "nr", seeds, dummy_evaluate, n_cells=30, log=lambda m: None, control="no_rl")
     nr.run(budget=40, stop_after_flat=1000)
     assert not nr.archive.frame(include_excluded=True)["has_rl"].any()
+
+
+def test_rows_carry_the_source_hash_and_a_source_change_resumes_with_a_note(tmp_path, monkeypatch):
+    G = Grammar(load_all()); seeds = _seeds(G, 4)
+    s = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=20, log=lambda m: None)
+    for _ in range(CHECKPOINT_EVERY):
+        s.step()
+    s.archive.flush()
+    df = s.archive.frame(include_excluded=True)
+    assert (df["source_hash"] == G.source_hash()).all() and (df["grammar_hash"] == G.hash).all()
+    msgs = []
+    r = Search(G, tmp_path / "s", seeds, dummy_evaluate, n_cells=20, log=msgs.append)
+    monkeypatch.setattr(type(G), "source_hash", staticmethod(lambda: "0" * 16))
+    assert r.resume() and r.n_evals == CHECKPOINT_EVERY                      # the grammar is unchanged: the run continues
+    assert any("component-source change" in m for m in msgs)

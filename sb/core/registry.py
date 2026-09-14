@@ -47,6 +47,24 @@ class ParamSpec:
             return v if v in self.choices else self.choices[0]
         return min(max(v, self.lo), self.hi)
 
+    def midpoint(self):
+        """The neutral point of the space: the geometric mean of a log range, the arithmetic
+        mean of a linear one, the middle choice. Deterministic - the ablation puts a
+        substitute's free parameters here rather than drawing them."""
+        if self.kind == "log":
+            return float(math.sqrt(self.lo * self.hi))
+        if self.kind == "lin":
+            return float(0.5 * (self.lo + self.hi))
+        if self.kind == "int":
+            return int(round(0.5 * (self.lo + self.hi)))
+        return self.choices[len(self.choices) // 2]
+
+    def same_space(self, other):
+        """True when a value of `other` means the same thing here: same kind and range. A
+        threshold in metres and a threshold in drift-disagreement units do not."""
+        return (self.kind == other.kind and self.lo == other.lo and self.hi == other.hi
+                and tuple(self.choices) == tuple(other.choices))
+
     def valid(self, v):
         if self.kind == "choice":
             return v in self.choices

@@ -148,7 +148,7 @@ class Search:
     def _row(self, g, desc, cell, rung, seed, r):
         lvl, dist = novelty(g, self.seed_set)
         row = dict(eval_id=f"{g.gid}-{cell}-r{rung}-s{seed}-{self.n_evals}", gid=g.gid, sid=g.sid, genome_json=g.to_json(), dsl=g.dsl(),
-                   grammar_hash=self.G.hash, control=self.control, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
+                   grammar_hash=self.G.hash, source_hash=self.G.source_hash(), control=self.control, algorithm=g.provenance.algorithm or self.algorithm, generation=self.gen, rung=rung, seed=seed,
                    cell=cell, novelty_level=lvl, seed_dist=dist, ts=time.time(), **{f"d_{a}": v for a, v in zip(AXES, desc)})
         row.update({k: v for k, v in r.items() if k not in row})          # the loop's identifiers win over the evaluator's
         self.archive.append(row, genome=g)
@@ -196,7 +196,8 @@ class Search:
     # ---------------------------------------------------------- checkpoint
     def state(self):
         return dict(gen=self.gen, n_evals=self.n_evals, pending=self.pending, rng=self.rng.bit_generator.state, elites=self.map.state(),
-                    algorithm=self.algorithm, control=self.control, grammar_hash=self.G.hash, validated={str(k): v for k, v in self.validated.items()},
+                    algorithm=self.algorithm, control=self.control, grammar_hash=self.G.hash, source_hash=self.G.source_hash(),
+                    validated={str(k): v for k, v in self.validated.items()},
                     surrogate_r2=(self.surrogate.r2 if self.surrogate is not None else None),
                     surrogate_trained_at=(self.surrogate.trained_at if self.surrogate is not None else None))
 
@@ -225,6 +226,13 @@ class Search:
             return False
         assert st["grammar_hash"] == self.G.hash, "the archive was built with another grammar"
         assert st.get("control", "none") == self.control, f"the archive is the {st.get('control', 'none')} control, not {self.control}"
+        src = self.G.source_hash()
+        if st.get("source_hash") not in (None, src):
+            # the grammar is the same; the component code that produced the earlier rows is
+            # not. Allowed (that is how a measurement bug is fixed without discarding a
+            # run) and recorded: every row carries the source hash it was produced under.
+            self.log(f"resuming across a component-source change: rows up to {st['n_evals']} came from {st['source_hash']}, "
+                     f"this process is {src}; analyses must group by source_hash")
         self.gen, self.n_evals, self.pending = st["gen"], st["n_evals"], list(st["pending"])
         self.rng.bit_generator.state = st["rng"]; self.map.load_state(st["elites"])
         self.validated = {int(k): v for k, v in st.get("validated", {}).items()}

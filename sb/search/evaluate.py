@@ -16,7 +16,7 @@ import torch
 from sb import settings
 from sb.core import se2 as S
 from sb.core.genome import ROOT
-from sb.core.substitute import ablate_bridges
+from sb.core.substitute import ablate_bridges, ablation_sites
 from sb.envs import task as TK
 from sb.envs import terrain as TR
 from sb.envs.base import Caps
@@ -64,6 +64,9 @@ class EvalResult:
     per_disturbance: dict = field(default_factory=dict)
     ablation_delta: float = float("nan")
     ablation_eval_id: str = ""
+    ablation_tuned: str = ""                         # the tuned counterfactual's DSL (rung 2)
+    trigger_fire_rate: float = float("nan")          # fires per robot-step; 0 for a trigger that never acts
+    trigger_d_seen: float = float("nan")             # fraction of decisions where the controller reported a disagreement
     has_bridge: bool = False
     has_rl: bool = False
     train_s: float = 0.0
@@ -144,30 +147,38 @@ class Stack:
         self.trigger = self._build_slot(ROOT, "trigger")
         self.value = self._build_slot(ROOT, "value")
         self._offset, self._anchor, self._last_k = None, None, -1
+        self.fires, self.decisions, self.d_seen = 0, 0, 0     # what the trigger actually did (ERRORS 2026-09-14)
 
     def _ctx(self, sub):
         return dict(task=self.task, demos=self.demos, models=self.models, seed=self.seed, manifold=getattr(self, "manifold", None), sub=sub, caps=self.caps,
                     obs_fn=self.obs_fn, obs_dim=self.obs_dim, seam=getattr(self, "seam", None), rung=self.rung)
 
-    def _replan_clock(self, g, k, tau, step, extra):
-        """Trigger slot: restart the skill clock of a robot whose deviation from the
-        reference exceeds the threshold (distance) or whose bridge disagreement does."""
-        n = g.shape[0]; T = TK.T_SKILL; tk = self.task
+    def _clock(self, g, k, step):
+        """The skill clock of each robot: (step within the skill, tau after any restarts).
+        Buffers are (re)initialised on a new skill, a new batch, or at t = 0."""
+        n = g.shape[0]; T = TK.T_SKILL
         t = step % T
         if self._offset is None or self._offset.shape[0] != n or k != self._last_k or t == 0:
             self._offset = torch.zeros(n, device=g.device); self._last_k = k
-            self._anchor = tk.means[k].expand_as(g).clone()       # the restarted reference runs from the pose at restart
-        tau_eff = ((t - self._offset) / T).clamp(0.0, 0.99)
+            self._anchor = self.task.means[k].expand_as(g).clone()   # a restarted reference runs from the pose at restart
+        return t, ((t - self._offset) / T).clamp(0.0, 0.99)
+
+    def _replan_clock(self, g, k, tau, step, extra):
+        """Trigger slot: restart the skill clock of a robot whose deviation from the
+        reference exceeds the threshold (distance) or whose bridge disagreement does.
+        Returns the tau to act on and which robots restarted."""
+        t, tau_eff = self._clock(g, k, step)
         trig = self.trigger
         if trig["kind"] == "distance":
-            ref = S.SE2.interp(self._anchor, tk.means[k + 1].expand_as(g), tau_eff)
+            ref = S.SE2.interp(self._anchor, self.task.means[k + 1].expand_as(g), tau_eff)
             dev = S.between(g, ref)[:, :2].norm(dim=1)
         else:                                                     # disagreement: needs the bridge's extra
-            dev = extra[:, 0] if extra is not None else torch.zeros(n, device=g.device)
+            dev = extra[:, 0] if extra is not None else torch.zeros_like(tau_eff)
         fire = dev > trig["thr"]
         self._offset = torch.where(fire, torch.full_like(self._offset, float(t)), self._offset)
         self._anchor = torch.where(fire[:, None], g, self._anchor)
-        return ((t - self._offset) / T).clamp(0.0, 0.99), fire
+        self.fires += int(fire.sum()); self.decisions += g.shape[0]; self.d_seen += g.shape[0] * int(extra is not None)
+        return ((t - self._offset) / TK.T_SKILL).clamp(0.0, 0.99), fire
 
     def _build_slot(self, parent, slot):
         nid = self.g.child_in(parent, slot)
@@ -188,15 +199,19 @@ class Stack:
         ctl = self.controller
         if isinstance(ctl, dict):                            # RL placeholders are trained by the evaluator, not here
             raise RuntimeError("RL controllers are trained by evaluate(); compile got an untrained one")
-        if self.trigger is not None:
-            tau, _ = self._replan_clock(g, k, tau, step, None)
+        if self.trigger is None:
             u, extra = ctl(g, k, tau, step)
-            if self.trigger["kind"] != "distance":
-                tau2, _ = self._replan_clock(g, k, tau, step, extra)
-                if not torch.equal(tau2, tau):
-                    u, extra = ctl(g, k, tau2, step)
+        elif self.trigger["kind"] == "distance":
+            tau, _ = self._replan_clock(g, k, tau, step, None)      # deviation is known before acting
+            u, extra = ctl(g, k, tau, step)
         else:
-            u, extra = ctl(g, k, tau, step)
+            # disagreement: the controller has to act before it can report D, so the test
+            # runs on this step's report and a robot that fires re-acts on the new clock
+            _, tau_now = self._clock(g, k, step)
+            u, extra = ctl(g, k, tau_now, step)
+            tau2, fire = self._replan_clock(g, k, tau_now, step, extra)
+            if bool(fire.any()):
+                u, extra = ctl(g, k, tau2, step)
         if self.noise is not None:
             sig = self.noise["sigma"] if self.noise["kind"] == "fixed" else self.noise["sigmas"][min(k, 2)]
             u = u + sig * torch.randn_like(u)
@@ -239,7 +254,7 @@ def score(stack, cell, seed, episodes, device):
         OracleGuard.armed = False
     prog = np.concatenate(succ_all)
     k20 = max(1, len(prog) // 20)
-    return dict(per=per, success=float(np.mean(list(per.values()))), collision=float(np.mean(coll)), energy=float(np.mean(energy)),
+    return dict(fires=stack.fires, decisions=stack.decisions, d_seen=stack.d_seen, per=per, success=float(np.mean(list(per.values()))), collision=float(np.mean(coll)), energy=float(np.mean(energy)),
                 cvar_01=float(np.sort(prog)[:max(1, int(np.ceil(0.1 * len(prog))))].mean()), worst_of_20=float(np.sort(prog)[:k20].mean()),
                 eval_s=time.time() - t0, oracle_reads=OracleGuard.count, invariants=inv)
 
@@ -294,11 +309,23 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
         res.per_disturbance, res.success, res.collision, res.energy = sc["per"], sc["success"], sc["collision"], sc["energy"]
         res.cvar_01, res.worst_of_20, res.eval_s, res.oracle_reads_at_test = sc["cvar_01"], sc["worst_of_20"], sc["eval_s"], sc["oracle_reads"]
         res.invariants = sc["invariants"]; res.quarantined = bool(tripped(sc["invariants"]))
+        if sc["decisions"]:
+            res.trigger_fire_rate = sc["fires"] / sc["decisions"]; res.trigger_d_seen = sc["d_seen"] / sc["decisions"]
         if sc["oracle_reads"]:
             res.valid, res.invalid_reason = False, "oracle read at test time"; return res
         res.fitness = fitness_of(res.success, res.collision, res.train_s, weights=weights)
         if (ablate if ablate is not None else rung >= 2) and res.has_bridge:
-            ab = evaluate(ablate_bridges(genome, grammar), cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos, rl_steps=rl_steps, weights=weights)
+            ab_g = ablate_bridges(genome, grammar)
+            if rung >= 2:                                    # the counterfactual is tuned, once per (cell, structure)
+                from sb.search.ablation import TUNE_SEED, tuned_ablation
+
+                def _score(cand):
+                    r = evaluate(cand, cell, 0, TUNE_SEED, grammar, models_dir, device, ablate=False, demos=demos, weights=weights)
+                    return r.fitness if r.valid and not r.quarantined else float("-inf")
+
+                ab_g, _, _ = tuned_ablation(ab_g, grammar, ablation_sites(genome, ab_g), cell.cell_id, _score, models_dir)
+                res.ablation_tuned = ab_g.dsl()[:400]
+            ab = evaluate(ab_g, cell, rung, seed, grammar, models_dir, device, episodes, ablate=False, demos=demos, rl_steps=rl_steps, weights=weights)
             res.ablation_delta, res.ablation_eval_id = res.fitness - ab.fitness, ab.eval_id
     except Exception as e:                                   # logged, never silently dropped
         res.valid, res.invalid_reason, res.error = False, "exception", f"{type(e).__name__}: {e}"

@@ -177,3 +177,39 @@ an empty archive; the stopped start is kept as `results/search/pilot_t1_aborted_
 (rung 0-1 rows only, whose behaviour is unchanged except the `steps` hold).
 
 Affected evaluations: none analysed; no rung-2 row existed.
+
+## 2026-09-14 - the ablation delta gets a tuned counterfactual; the grammar hash is structural
+
+Evidence: ERRORS.md of the same date. The registered definition (SEARCH_PLAN 2.7) says
+the ablation delta is "fitness minus the fitness of the same genome with every bridge slot
+replaced by its nearest non-bridge neighbour" and does not say where the neighbour's own
+free parameters go. Tranche 1's first six validated cells showed that this gap decides the
+sign and the size of the pilot's headline number.
+
+Change, effective before any validated row is analysed:
+
+- The substitution is deterministic and neutral: a parameter transfers only between
+  identical parameter spaces, every other free parameter of the substitute takes the
+  midpoint of its range.
+- At rung 2 the substitute is *tuned*: a coordinate sweep from that neutral point over the
+  substituted nodes' parameters (at most 8 rung-0 evaluations, at a seed the validation
+  never uses, cached per (cell, structure) in `results/search/models/ablation_tuning.json`).
+  The delta therefore compares a bridge against the best non-bridge counterpart the same
+  budget can find. This can only shrink a bridge's apparent contribution, never inflate it,
+  and the tuned counterfactual's DSL is written into every rung-2 row.
+- Every evaluation records `trigger_fire_rate` and `trigger_d_seen`. A bridge component
+  that never acts (a disagreement trigger over a controller with no forward/backward drift)
+  is reported as inert in the census, and its cell is not evidence that "the bridge is
+  load-bearing" whatever its delta.
+- The grammar's identity hash is now structural (slots, components, parameter spaces,
+  innovation table, filter). The component *source* hash stays in the manifest, is still
+  refused by `load_frozen` when a search starts from drifted code, and is now written into
+  every archive row and checkpoint, so a measurement fix can be made by re-freezing and
+  resuming rather than by discarding a run - with the change recorded per row instead of
+  hidden. `search.py --resume` logs the transition when it crosses one.
+
+Affected evaluations: tranche 1's 40 rung-2 rows and their 30 ablation rows are tagged
+`exclude:ablation_substitution` and kept in the archive; its 100 rung-0 and 84 rung-1 rows
+are unaffected in behaviour but were produced under the previous manifest hash, so the
+tranche restarts from an empty archive under the re-frozen manifest (the last restart
+forced by a hashed-source change; from here a fix of this kind resumes).

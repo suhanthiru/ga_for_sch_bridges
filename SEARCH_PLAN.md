@@ -372,6 +372,15 @@ worst-of-20, collision, energy, train compute, inference latency, demo count. Mi
 by greedy backward elimination of every validated elite; deployability = inference
 <= 20 ms at a Jetson-class budget (reported, flagged).
 
+Amended 2026-09-14 (PLAN_CHANGES): the substitute's own free parameters are not left to
+chance. A parameter transfers from the bridge component only between identical parameter
+spaces; every other one starts at its midpoint; and at rung 2 the substitute is tuned by a
+coordinate sweep of at most eight rung-0 evaluations at a seed the validation does not use,
+cached per (cell, structure). The delta is therefore a bridge against the best non-bridge
+counterpart that budget can find. Every evaluation also records the trigger's fire rate and
+whether the controller reported a disagreement, so a bridge component that never acted is
+reported as inert whatever its delta says.
+
 ### 2.8 Evaluation ladder
 
 Rung 0: 1 seed, 30 episodes, 100k RL steps, E1, the 8 fixed cells (the 2x2x2 corners of

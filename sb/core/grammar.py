@@ -104,7 +104,13 @@ class Grammar:
 
     @property
     def hash(self):
-        return hashlib.sha256(json.dumps(self.manifest(), sort_keys=True).encode()).hexdigest()[:16]
+        """The grammar's identity: slots, components, parameter spaces, innovation table,
+        filter. The component *source* hash is recorded in the manifest and checked
+        separately (`load_frozen`), so fixing a measurement bug in a component does not
+        redefine the grammar and rows stay comparable across such a fix; every row also
+        carries the source hash it was produced under."""
+        m = {k: v for k, v in self.manifest().items() if k != "source"}
+        return hashlib.sha256(json.dumps(m, sort_keys=True).encode()).hexdigest()[:16]
 
     # ------------------------------------------------------------- validate
     def validate(self, g):

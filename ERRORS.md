@@ -76,3 +76,45 @@ rung-2 row (PLAN_CHANGES 2026-09-13).
 
 Lesson: a parameter in a component's spec must be read by a test that changes it and
 sees a different build; tests/test_evaluate.py now does that for the drift controller.
+
+## 2026-09-14 - the ablation delta measured the substitute's luck (search infrastructure, class 3)
+
+Seen: the first validated cells of pilot tranche 1 reported ablation deltas of +0.571,
++0.371, +0.313, +0.287, +0.000 and -0.339 - large in both directions, against a prior
+that says the bridge is dead as a controller. Per the program's rule for a statistical
+anomaly the substitution was checked before the number was believed, and it was the
+substitution.
+
+Three defects, all in how the nearest non-bridge neighbour was built:
+
+1. A mapped parameter was copied whenever it happened to be numerically valid in the
+   substitute's range. `trigger.bridge_disagreement` (thr in drift-disagreement units,
+   0.05-1.0) mapped to `trigger.distance` (thr in metres, 0.02-0.5). Cell 2's elite had
+   thr 0.0506, which is a legal distance too, so the counterfactual became a stack that
+   restarts its skill clock every ~16 steps: tau never passed 0.25 and fitness fell from
+   0.85 to 0.29. Cell 0's elite had thr 0.719, outside the distance range, so it was
+   *re-sampled* instead - the same table producing two different behaviours.
+2. Unmapped parameters were drawn at random (`p.sample(rng)`), though the docstring
+   claimed the midpoint. Cell 3's grid bridge was ablated to a PD at kp 8.7, a gain
+   nobody chose.
+3. Because the bridge component in cells 0, 1 and 2 was a disagreement trigger sitting
+   over a PD, it had no forward/backward drift to read and never fired: instrumented,
+   D was available on 0 of 2400 decisions and the fire rate was 0.0000. The "bridge" arm
+   was a plain PD, so the delta measured only the damage done to the other arm.
+
+Handled: `ablate_bridges` is deterministic - a parameter transfers only between identical
+parameter spaces (`ParamSpec.same_space`), everything else takes `ParamSpec.midpoint()`;
+at the validation rung the counterfactual is then tuned by a short coordinate sweep at
+rung-0 cost, cached per (cell, structure) (`sb/search/ablation.py`, SEARCH_PLAN 2.7 and
+PLAN_CHANGES 2026-09-14); and every evaluation now records `trigger_fire_rate` and
+`trigger_d_seen`, so a bridge component that never acted is visible in the archive rather
+than inferred. Re-scored under the fix, cell 2 goes from +0.571 to +0.000 (the tuner
+moves the distance threshold to 0.5, where it never fires, so the counterfactual is the
+same PD) and cell 3 from -0.339 to -0.410 (the PD tunes to kp 30, and the grid bridge
+loses to it by more). Both corrections run in the strict direction.
+
+The 70 affected rows of tranche 1 are tagged `exclude:ablation_substitution` and kept.
+
+Lesson: an ablation is an experiment, not a rewrite rule. Its counterfactual needs an
+operating point chosen on purpose, and a component that cannot act in a stack must be
+recorded as inert rather than credited with the difference.
