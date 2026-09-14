@@ -358,7 +358,11 @@ hyperparameters are tuned by the same budget through the no-bridge control searc
 ### 2.7 Fitness, constraints, secondary metrics
 
 Fitness = mean success over the cell's disturbance set - 0.02 log(compute relative to
-PD) - 0.05 collision rate, the three reported separately. Invalid (not low): inference
+PD) - 0.05 collision rate, the three reported separately. Amended 2026-09-14
+(PLAN_CHANGES): "compute" is the genome's deterministic training cost from
+`sb/search/cost.py`, not the evaluation's measured wall clock, which depended on cache
+state, machine load, evaluation order and rung; measured wall clock is reported as
+`train_s` and never scored. Invalid (not low): inference
 > 50 ms per step on CPU at batch 1; a failed component test; any read of the oracle at
 test time (train-time only, and only in the data and value slots; enforced by the
 capability object, a test wrapper without the oracle attribute, and a call counter).

@@ -17,6 +17,7 @@ from sb import settings
 from sb.core import se2 as S
 from sb.core.genome import ROOT
 from sb.core.substitute import ablate_bridges, ablation_sites
+from sb.search.cost import PD_REFERENCE_S, train_cost_s
 from sb.envs import task as TK
 from sb.envs import terrain as TR
 from sb.envs.base import Caps
@@ -69,7 +70,8 @@ class EvalResult:
     trigger_d_seen: float = float("nan")             # fraction of decisions where the controller reported a disagreement
     has_bridge: bool = False
     has_rl: bool = False
-    train_s: float = 0.0
+    train_s: float = 0.0                             # measured wall clock, reported only
+    train_cost_s: float = 0.0                        # the genome's deterministic training cost, what fitness uses
     eval_s: float = 0.0
     infer_ms: float = float("nan")
     oracle_reads_at_test: int = 0
@@ -273,11 +275,14 @@ def latency_ms(stack, device):
 DEFAULT_WEIGHTS = dict(compute=0.02, collision=0.05)
 
 
-def fitness_of(success, collision, train_s, pd_train_s=1.0, weights=None):
-    """SEARCH_PLAN 2.7: success minus a log-compute penalty relative to the PD's training
-    time minus a collision penalty; the weights are what the sensitivity study scales."""
+def fitness_of(success, collision, train_cost_s, pd_train_s=PD_REFERENCE_S, weights=None):
+    """SEARCH_PLAN 2.7 as amended 2026-09-14: success minus a log-compute penalty relative
+    to the PD's training cost minus a collision penalty. `train_cost_s` is the deterministic
+    cost of the genome (sb.search.cost), not a stopwatch reading - a stopwatch made the
+    objective depend on cache state, machine load and evaluation order. The weights are
+    what the sensitivity study scales."""
     w = dict(DEFAULT_WEIGHTS, **(weights or {}))
-    return success - w["compute"] * np.log(max(train_s, 1e-3) / pd_train_s + 1.0) - w["collision"] * collision
+    return success - w["compute"] * np.log(max(train_cost_s, 0.0) / pd_train_s + 1.0) - w["collision"] * collision
 
 
 def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, episodes=None, ablate=None, demos=None, rl_steps=None, weights=None):
@@ -313,7 +318,8 @@ def evaluate(genome, cell, rung, seed, grammar, models_dir=None, device=None, ep
             res.trigger_fire_rate = sc["fires"] / sc["decisions"]; res.trigger_d_seen = sc["d_seen"] / sc["decisions"]
         if sc["oracle_reads"]:
             res.valid, res.invalid_reason = False, "oracle read at test time"; return res
-        res.fitness = fitness_of(res.success, res.collision, res.train_s, weights=weights)
+        res.train_cost_s = train_cost_s(genome, grammar, budget, rung)
+        res.fitness = fitness_of(res.success, res.collision, res.train_cost_s, weights=weights)
         if (ablate if ablate is not None else rung >= 2) and res.has_bridge:
             ab_g = ablate_bridges(genome, grammar)
             if rung >= 2:                                    # the counterfactual is tuned, once per (cell, structure)

@@ -84,12 +84,18 @@ class Grammar:
 
     @staticmethod
     def source_hash():
-        """sha256 over the component sources and this module: code drift in a component is a
-        grammar change even when its declared spec is unchanged."""
+        """sha256 over the code that decides what an archive row means: the components, the
+        grammar and its substitution table, the evaluator, the training-cost model and the
+        ablation tuner. It is recorded in the manifest and in every row, and refused by
+        `load_frozen` when a search starts from drifted code; it is deliberately not part
+        of the grammar's identity hash, so a measurement fix can be re-frozen and resumed
+        with the change visible per row instead of hidden (ERRORS 2026-09-14)."""
         import glob
         from pathlib import Path
         here = Path(__file__).resolve().parent.parent
-        files = sorted(glob.glob(str(here / "components" / "*.py"))) + [str(here / "core" / "grammar.py"), str(here / "core" / "substitute.py")]
+        files = (sorted(glob.glob(str(here / "components" / "*.py")))
+                 + [str(here / "core" / "grammar.py"), str(here / "core" / "substitute.py"),
+                    str(here / "search" / "evaluate.py"), str(here / "search" / "cost.py"), str(here / "search" / "ablation.py")])
         h = hashlib.sha256()
         for f in files:
             h.update(Path(f).read_bytes())

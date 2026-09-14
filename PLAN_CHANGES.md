@@ -213,3 +213,33 @@ Affected evaluations: tranche 1's 40 rung-2 rows and their 30 ablation rows are 
 are unaffected in behaviour but were produced under the previous manifest hash, so the
 tranche restarts from an empty archive under the re-frozen manifest (the last restart
 forced by a hashed-source change; from here a fix of this kind resumes).
+
+## 2026-09-14 - "compute relative to PD" is computed from the genome, not the clock
+
+Evidence: ERRORS.md of the same date, with the per-controller table of what the wall-clock
+term was charging. The rule in 2.7 ("success - 0.02 log(compute relative to PD) - 0.05
+collision") is unchanged; what changes is how compute is measured, because measuring it
+with a stopwatch made the objective depend on cache state, machine load, evaluation order
+and rung, and made fitness irreproducible against the bit-check registered in 2.8.
+
+Change: compute is the genome's own training cost in seconds, summed over its components
+(including sub-slots, so a residual pays for its base) from per-unit constants measured by
+`bench/` on this machine and recorded in `sb/search/cost.py`:
+
+    neural bridge drift   N_SKILL x 2 directions x 1200 solver steps x 8.3 ms
+                          (+ IPF iterations x N_SKILL x 2 x 300 steps at rung 2)
+    grid bridge           0.04 s x iterations / 50
+    diffusion             steps x 0.69 ms
+    PPO / residual / RL-noise   the rung's env-step budget x 38 us
+
+Everything else costs nothing, which is right for components that only read demonstrations
+or wrap another. Measured wall-clock stays in every row as `train_s`, reported, never
+scored. The constants are a property of this machine and are re-measured whenever `bench/`
+is re-run; they are part of the plan, so changing them is a PLAN_CHANGES entry.
+
+The source hash now covers the evaluator, the cost model and the ablation tuner as well as
+the components, so a row always records the code that gave it its meaning.
+
+Affected evaluations: every fitness value. Tranche 1's 200 evaluations were produced under
+the stopwatch objective and are kept as `results/search/pilot_t1_aborted_walltime_fitness`;
+the tranche restarts. A run may not be stitched across a change of its own objective.

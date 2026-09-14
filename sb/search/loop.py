@@ -49,7 +49,7 @@ def dummy_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
     rng = np.random.default_rng(h % (1 << 32))
     succ = float(rng.beta(2, 3)) + 0.02 * len(genome.nodes) + 0.02 * np.random.default_rng(seed + 7).normal()
     coll = float(rng.beta(1, 8)); train_s = float(1 + 20 * rng.random())
-    f = fitness_of(succ, coll, train_s, weights=weights)
+    f = fitness_of(succ, coll, train_s, weights=weights)          # the stand-in's cost is synthetic but deterministic per genome
     hb = grammar.has_tag(genome, "bridge")
     return dict(valid=True, fitness=f, success=succ, collision=coll, energy=1.0, cvar_01=succ / 2, worst_of_20=succ / 3, train_s=train_s, eval_s=0.0,
                 has_bridge=hb, has_rl=grammar.has_tag(genome, "rl"), invalid_reason="", error="", quarantined=False,

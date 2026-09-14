@@ -118,3 +118,46 @@ The 70 affected rows of tranche 1 are tagged `exclude:ablation_substitution` and
 Lesson: an ablation is an experiment, not a rewrite rule. Its counterfactual needs an
 operating point chosen on purpose, and a component that cannot act in a stack must be
 recorded as inert rather than credited with the difference.
+
+## 2026-09-14 - the objective charged for compute with a stopwatch (plan conflict, class 6)
+
+Seen: two rung-2 evaluations of the same elite, same seed, with the full determinism kit
+enabled, produced *identical* success (0.441667) and different fitness. The difference was
+not in the physics: `fitness_of` took the evaluation's measured wall-clock seconds as its
+"compute relative to PD" term.
+
+What that term actually measured, from the tranche's own 186 rung-0 rows:
+
+| controller | median penalty | max penalty | first evaluation -> a later one |
+|---|---|---|---|
+| pd | 0.0000 | 0.0787 | 0.0000 -> 0.0000 |
+| grid_bridge | 0.0028 | 0.0684 | 0.0669 -> 0.0008 |
+| bridge_drift | 0.0006 | 0.0687 | 0.0685 -> 0.0613 |
+| diffusion | 0.0532 | 0.0980 | 0.0706 -> 0.0980 |
+| rl_residual | 0.0653 | 0.1197 | 0.1197 -> 0.0621 |
+
+So the objective depended on whether a cached net had already been trained by an earlier
+evaluation (an identical grid bridge charged 0.0669 or 0.0008 - two thirds of the 0.1
+promotion margin, decided by evaluation order), on how loaded a GPU shared with two other
+sessions happened to be (rl_residual 396.9 s -> 21.3 s), and on the rung, since training
+is cached between rungs. The promotion decision is a comparison against the cell's elite
+within 0.1, so a term that swings by 0.12 for reasons outside the genome was deciding
+which mutants were promoted. And the only stack that trains nothing - the PD - paid zero
+every time, which is the baseline every ablation substitutes in.
+
+Handled: `sb/search/cost.py` computes the training cost from the genome's components and
+parameters with per-unit constants measured by `bench/` (bridge solver step 8.3 ms,
+diffusion step 0.69 ms, RL env-step 38 us, grid solve 0.04 s), and `fitness_of` takes that.
+The measured wall clock stays in every row as `train_s`, reported and never scored. The
+cost is now identical for every evaluation of the same genome at the same budget, so
+fitness is reproducible and rung 2's registered bit-check can mean something.
+
+Note for the record: this *raises* the charge on a neural bridge to a consistent 0.082
+(60 s of CPU fitting) where the cached implementation was mostly charging it 0.0006. That
+is the registered rule applied consistently, not a new penalty - and the direction matters,
+because the previous behaviour was quietly discounting exactly the component whose value
+the program exists to test, in whichever direction the cache happened to fall.
+
+Tranche 1 is restarted: fitness is the objective, and two halves of a run scored on
+different objectives cannot be compared or stitched. Its 200 evaluations are kept as
+`results/search/pilot_t1_aborted_walltime_fitness`.
