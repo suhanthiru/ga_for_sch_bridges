@@ -402,9 +402,10 @@ freeze date; any earlier row invalidates the "why" model.
 ### 2.10 Pilot manifest
 
 Frozen 2026-09-13 as `grammar_pilot/` (36 components, hash ef0314e95a24074f, 200 random
-seed genomes) and re-frozen 2026-09-13 before any pilot row (hash e80941e5402d6fe3,
-component source hash 3071bf6a3bde230d; PLAN_CHANGES 2026-09-13, two entries: the wired
-seam and trigger slots, then the drift controller's solver flags): the pilot's root
+seed genomes) and re-frozen through 2026-09-14 before any analysed pilot row (hash
+c4891ed7e54cf4fd, component source hash ef80547caa604ca0; PLAN_CHANGES 2026-09-13, two
+entries: the wired seam and trigger slots, then the drift controller's solver flags; and
+2026-09-14, the tuned ablation counterfactual and the structural grammar hash): the pilot's root
 slots are manifold, seam, controller, trigger, noise, safety; the seam width and the
 triggers now act on the stack. It is the pilot's grammar only; the main manifest is
 frozen separately after stage C, and the "never extended mid-search" rule applies per
