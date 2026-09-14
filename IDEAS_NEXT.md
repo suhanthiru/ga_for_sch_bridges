@@ -64,3 +64,20 @@ freeze, three options in increasing strength:
 The third is worth keeping whichever of the first two is chosen: a component that provably
 does nothing is a free test that the ablation machinery is honest. Related: the sampler
 gene has the same character (registered, inert for a drift-executed controller).
+
+## 2026-09-14 — the counterfactual tuner should prefer the neutral point on a tie
+
+Measured at tranche 1's second checkpoint: six validated cells hold an inert bridge trigger
+(fire rate 0.0, D available on no decision), and four of them return an ablation delta of
+exactly 0 while two return +3.6e-4 and +1.6e-4. The difference is the tuner: where it
+picked a threshold at which the distance trigger never fires, the counterfactual is the
+elite and the delta is exactly zero; where it picked one that fires occasionally — better
+at its tuning seed (30 episodes, seed 0), marginally worse across the ten validation seeds
+at 200 episodes — a small residue appears.
+
+The residue is negligible against the 0.10 minimum effect, but it is selection noise in
+the counterfactual and it is avoidable: require an improvement of at least some epsilon
+before the sweep moves off the neutral midpoint, so a tie keeps the neutral stack. That
+makes an inert bridge score exactly zero by construction, and it reduces the variance of
+every ablation delta at no cost. Worth doing at the next freeze, together with tuning at
+more than one seed if the budget allows.
