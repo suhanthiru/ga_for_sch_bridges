@@ -242,6 +242,10 @@ class Search:
             # run) and recorded: every row carries the source hash it was produced under.
             self.log(f"resuming across a component-source change: rows up to {st['n_evals']} came from {st['source_hash']}, "
                      f"this process is {src}; analyses must group by source_hash")
+            if st.get("validated"):
+                # the validations were produced by the previous code; every cell is due again
+                self.log(f"clearing {len(st['validated'])} validations so every cell re-validates under this code")
+                st = dict(st, validated={})
         self.gen, self.n_evals, self.pending = st["gen"], st["n_evals"], list(st["pending"])
         self.rng.bit_generator.state = st["rng"]; self.map.load_state(st["elites"])
         self.validated = {int(k): v for k, v in st.get("validated", {}).items()}

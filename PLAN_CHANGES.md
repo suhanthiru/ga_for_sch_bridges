@@ -243,3 +243,22 @@ the components, so a row always records the code that gave it its meaning.
 Affected evaluations: every fitness value. Tranche 1's 200 evaluations were produced under
 the stopwatch objective and are kept as `results/search/pilot_t1_aborted_walltime_fitness`;
 the tranche restarts. A run may not be stitched across a change of its own objective.
+
+## 2026-09-14 - the ablation's counterfactual is tuned per cell, and the run resumes
+
+Evidence: ERRORS.md of the same date. The tuned counterfactual registered earlier today was
+cached under a cell id that was 0 for every evaluation, so it was tuned once per structure
+and reused across all eight cells rather than tuned for each.
+
+Change: the evaluator's cell identity comes from the descriptor vector, so the cache key,
+the eval ids and anything else keyed per cell are per cell in fact as well as in name. A
+resume that crosses a component-source change clears the run's validations, so every cell
+re-validates under the code that will be reported.
+
+Affected evaluations: the 150 rung-2 rows of tranche 1 produced under the shared cache are
+tagged `exclude:shared_ablation_cache` and kept; the tuning cache is retired to
+`ablation_tuning_cellid0.json`. Rung-0 and rung-1 rows compute no ablation and stand, so
+the tranche resumes from its 400-evaluation checkpoint rather than restarting. The rung-2
+conclusions drawn earlier today - the grid bridge controller at about -0.40, the inert
+triggers at zero - are re-measured from scratch under the per-cell counterfactual before
+they are reported anywhere.

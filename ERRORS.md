@@ -161,3 +161,30 @@ the program exists to test, in whichever direction the cache happened to fall.
 Tranche 1 is restarted: fitness is the objective, and two halves of a run scored on
 different objectives cannot be compared or stitched. Its 200 evaluations are kept as
 `results/search/pilot_t1_aborted_walltime_fitness`.
+
+## 2026-09-14 - every evaluation ran under cell id 0 (search infrastructure, class 3)
+
+Seen while checking why two inert-bridge cells returned +3.6e-4 and +1.6e-4 where four
+others returned exactly 0: the ablation tuning cache held eight entries and every key began
+`0|`. `search.py::real_evaluate` built the evaluator's `Cell` with `cell_from_vector(desc)`
+and the default `cell_id=0`, so the identity of the cell being evaluated was 0 everywhere.
+
+Two consequences. The tuned counterfactual is cached per (cell, structure); with one cell
+id it was shared across all eight cells, so a substitute tuned on one cell's slip magnitude,
+push rate and observability was reused as the counterfactual for the others - which is
+also the likely source of those residues, a trigger threshold tuned elsewhere firing here.
+And `eval_id_of(genome, cell_id, rung, seed)` collided across cells, so `ablation_eval_id`
+could not identify which cell's ablation a row referred to. Archive rows themselves were
+never ambiguous: the search loop writes its own eval_id carrying the map cell.
+
+Handled: a cell's identity is now derived from its descriptor vector
+(`sb/search/cells.descriptor_id`), which is what "the conditions this genome was evaluated
+under" actually means - the map's CVT index depends on the centroid file and is not a
+stable key. The eight fixed cells keep their readable ids 0-7. The 150 rung-2 rows produced
+under the shared cache are tagged `exclude:shared_ablation_cache` and the cache file is
+retired to `ablation_tuning_cellid0.json` rather than reused. On resume across a source
+change the search now clears its validations, so every cell re-validates under the new code.
+
+Rung-0 and rung-1 rows are unaffected - they compute no ablation - so the run resumes from
+its checkpoint at 400 evaluations instead of restarting. This is the first defect of the
+day that the source-hash and resume design paid for.

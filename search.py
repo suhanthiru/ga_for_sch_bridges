@@ -17,7 +17,8 @@ from sb.search.loop import Search, dummy_evaluate
 
 def real_evaluate(genome, cell_desc, rung, seed, grammar, weights=None):
     from sb.search.cells import cell_from_vector
-    cell = cell_from_vector(cell_desc)
+    cell = cell_from_vector(cell_desc)          # identity derived from the descriptor: the
+                                                # ablation cache and the eval ids are per cell
     r = evaluate(genome, cell, rung, seed, grammar, weights=weights)
     return r.row()
 
